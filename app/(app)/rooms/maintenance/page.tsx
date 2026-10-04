@@ -82,6 +82,7 @@ export default function MaintenancePage() {
       {
         accessorKey: "priority",
         header: t("rooms.priority"),
+        meta: { exportValue: (row) => t(`common.${row.priority}` as never) },
         cell: ({ row }) => (
           <StatusTag hue={PRIORITY_HUE[row.original.priority]} dot>
             {t(`common.${row.original.priority}` as never)}
@@ -91,6 +92,7 @@ export default function MaintenancePage() {
       {
         accessorKey: "state",
         header: t("common.status"),
+        meta: { exportValue: (row) => t(`rooms.${row.state}` as never) },
         cell: ({ row }) => (
           <StatusTag hue={STATE_HUE[row.original.state]}>
             {t(`rooms.${row.original.state}` as never)}
@@ -180,6 +182,7 @@ export default function MaintenancePage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="work-orders"
           emptyIcon={<Wrench />}
           className="min-h-0 flex-1"
           toolbar={

@@ -47,6 +47,7 @@ export default function PurchaseOrdersPage() {
       {
         accessorKey: "status",
         header: t("common.status"),
+        meta: { exportValue: (row) => t(`inventory.${row.status}` as never) },
         cell: ({ row }) => (
           <StatusTag hue={HUE[row.original.status]} dot>
             {t(`inventory.${row.original.status}` as never)}
@@ -100,6 +101,7 @@ export default function PurchaseOrdersPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="purchase-orders"
           emptyIcon={<ShoppingCart />}
           className="min-h-0 flex-1"
           toolbar={

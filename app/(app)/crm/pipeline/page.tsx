@@ -32,7 +32,7 @@ import { ScrollFade } from "@/components/motion/scroll-fade"
 import { StatusTag, HueDot } from "@/components/motion/status-tag"
 import { StreamingText } from "@/components/motion/streaming-text"
 import { cn } from "@/lib/utils"
-import { useDataset, useLookups, useMoney } from "@/lib/data"
+import { useDataEdits, useDataset, useLookups, useMoney } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
 import type { Deal, DealStage } from "@/lib/types"
 
@@ -54,7 +54,7 @@ export default function PipelinePage() {
   const money = useMoney()
   const { t, locale, num, date, pct } = useLocale()
 
-  const [moves, setMoves] = React.useState<Record<string, DealStage>>({})
+  const edits = useDataEdits()
   const [dragging, setDragging] = React.useState<Deal | null>(null)
   const [openDeal, setOpenDeal] = React.useState<Deal | null>(null)
 
@@ -62,13 +62,7 @@ export default function PipelinePage() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
 
-  const deals = React.useMemo(
-    () =>
-      data.deals.map((deal) =>
-        moves[deal.id] ? { ...deal, stage: moves[deal.id] } : deal
-      ),
-    [data.deals, moves]
-  )
+  const deals = data.deals
 
   const byStage = React.useMemo(() => {
     const map = new Map<DealStage, Deal[]>()
@@ -87,7 +81,7 @@ export default function PipelinePage() {
     const dealId = String(event.active.id)
     const deal = deals.find((d) => d.id === dealId)
     if (!stage || !deal || deal.stage === stage) return
-    setMoves((prev) => ({ ...prev, [dealId]: stage }))
+    edits.update("deals", dealId, { stage })
     toast.success(
       t("crm.dealMoved", {
         deal: deal.title[locale],

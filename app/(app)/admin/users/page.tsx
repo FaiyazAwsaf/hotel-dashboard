@@ -65,6 +65,10 @@ export default function UsersPage() {
       {
         accessorKey: "department",
         header: t("staff.department"),
+        meta: {
+          exportValue: (row) =>
+            t(`staff.departments.${row.department}` as never),
+        },
         cell: ({ row }) => (
           <span className="text-muted-foreground">
             {t(`staff.departments.${row.original.department}` as never)}
@@ -75,7 +79,7 @@ export default function UsersPage() {
         id: "lastSeen",
         accessorFn: (row) => row.joinedAt,
         header: t("admin.lastSeen"),
-        meta: { align: "right" },
+        meta: { align: "right", export: false },
         cell: ({ row }) => {
           const index = users.indexOf(row.original)
           return (
@@ -90,7 +94,15 @@ export default function UsersPage() {
       {
         id: "status",
         header: t("common.status"),
-        meta: { align: "right" },
+        meta: {
+          align: "right",
+          exportValue: (row) =>
+            t(
+              users.indexOf(row) % 9 === 4
+                ? "common.disabled"
+                : "common.enabled"
+            ),
+        },
         enableSorting: false,
         cell: ({ row }) => {
           const index = users.indexOf(row.original)
@@ -124,6 +136,7 @@ export default function UsersPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="users"
           emptyIcon={<Users />}
           className="min-h-0 flex-1"
           toolbar={

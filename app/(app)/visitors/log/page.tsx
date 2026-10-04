@@ -63,6 +63,9 @@ export default function VisitorLogPage() {
       {
         accessorKey: "purpose",
         header: t("visitors.purpose"),
+        meta: {
+          exportValue: (row) => t(`visitors.purposes.${row.purpose}` as never),
+        },
         cell: ({ row }) => (
           <StatusTag hue={PURPOSE_HUE[row.original.purpose]}>
             {t(`visitors.purposes.${row.original.purpose}` as never)}
@@ -84,6 +87,7 @@ export default function VisitorLogPage() {
         id: "clearance",
         accessorFn: (row) => row.clearance,
         header: t("vms.clearance.title"),
+        meta: { exportValue: (row) => t(CLEARANCE_LABEL[row.clearance]) },
         cell: ({ row }) => (
           <span className="flex items-center gap-1">
             <StatusTag hue={CLEARANCE_HUE[row.original.clearance]} dot>
@@ -100,8 +104,16 @@ export default function VisitorLogPage() {
       {
         id: "vehicle",
         accessorFn: (row) =>
-          row.vehicleId ? (lookups.vehicle.get(row.vehicleId)?.plate.en ?? "") : "",
+          row.vehicleId
+            ? (lookups.vehicle.get(row.vehicleId)?.plate.en ?? "")
+            : "",
         header: t("visitors.vehicle"),
+        meta: {
+          exportValue: (row) =>
+            row.vehicleId
+              ? lookups.vehicle.get(row.vehicleId)?.plate[locale]
+              : null,
+        },
         cell: ({ row }) => {
           const vehicle = row.original.vehicleId
             ? lookups.vehicle.get(row.original.vehicleId)
@@ -193,6 +205,7 @@ export default function VisitorLogPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="visitor-log"
           emptyIcon={<IdCard />}
           className="min-h-0 flex-1"
           toolbar={

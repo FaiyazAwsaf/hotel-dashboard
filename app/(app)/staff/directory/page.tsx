@@ -69,6 +69,10 @@ export default function StaffDirectoryPage() {
       {
         accessorKey: "department",
         header: t("staff.department"),
+        meta: {
+          exportValue: (row) =>
+            t(`staff.departments.${row.department}` as never),
+        },
         cell: ({ row }) => (
           <StatusTag hue={DEPT_HUE[row.original.department]}>
             {t(`staff.departments.${row.original.department}` as never)}
@@ -78,6 +82,9 @@ export default function StaffDirectoryPage() {
       {
         accessorKey: "shift",
         header: t("staff.shift"),
+        meta: {
+          exportValue: (row) => t(`staff.shifts.${row.shift}` as never),
+        },
         cell: ({ row }) => (
           <StatusTag hue="slate" dot>
             {t(`staff.shifts.${row.original.shift}` as never)}
@@ -140,6 +147,7 @@ export default function StaffDirectoryPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="staff-directory"
           emptyIcon={<UserCog />}
           className="min-h-0 flex-1"
           toolbar={

@@ -45,6 +45,7 @@ export default function VehiclesPage() {
         id: "plate",
         accessorFn: (row) => row.plate.en,
         header: t("vms.vehicles.plate"),
+        meta: { exportValue: (row) => row.plate[locale] },
         cell: ({ row }) => (
           <span className="nums flex items-center gap-1.5 font-medium">
             <Car className="size-3 text-muted-foreground" />
@@ -55,6 +56,9 @@ export default function VehiclesPage() {
       {
         accessorKey: "type",
         header: t("vms.luggage.kind"),
+        meta: {
+          exportValue: (row) => t(`vms.vehicles.types.${row.type}` as never),
+        },
         cell: ({ row }) => (
           <StatusTag hue="slate">
             {t(`vms.vehicles.types.${row.original.type}` as never)}
@@ -64,6 +68,7 @@ export default function VehiclesPage() {
       {
         accessorKey: "make",
         header: t("vms.vehicles.make"),
+        meta: { exportValue: (row) => `${row.make} · ${row.colour[locale]}` },
         cell: ({ row }) => (
           <span className="flex items-center gap-1.5">
             <span className="truncate">{row.original.make}</span>
@@ -105,6 +110,7 @@ export default function VehiclesPage() {
       {
         accessorKey: "clearance",
         header: t("vms.clearance.title"),
+        meta: { exportValue: (row) => t(CLEARANCE_LABEL[row.clearance]) },
         cell: ({ row }) => (
           <StatusTag
             hue={CLEARANCE_HUE[row.original.clearance]}
@@ -122,7 +128,8 @@ export default function VehiclesPage() {
             <span
               className={cn(
                 "nums flex items-center gap-1.5",
-                isEscalated(row.original.clearance) && "font-medium text-primary"
+                isEscalated(row.original.clearance) &&
+                  "font-medium text-primary"
               )}
             >
               <ParkingSquare className="size-3" />
@@ -137,6 +144,10 @@ export default function VehiclesPage() {
       {
         accessorKey: "screened",
         header: t("vms.luggage.screened"),
+        meta: {
+          exportValue: (row) =>
+            t(row.screened ? "vms.luggage.screened" : "vms.luggage.unscreened"),
+        },
         cell: ({ row }) =>
           row.original.screened ? (
             <StatusTag hue="green" dot>
@@ -176,7 +187,9 @@ export default function VehiclesPage() {
     const reserved = data.vehicles.filter((vehicle) =>
       isEscalated(vehicle.clearance)
     ).length
-    const unscreened = data.vehicles.filter((vehicle) => !vehicle.screened).length
+    const unscreened = data.vehicles.filter(
+      (vehicle) => !vehicle.screened
+    ).length
     return [
       {
         id: "total",
@@ -258,12 +271,18 @@ export default function VehiclesPage() {
               </div>
             ))}
             <div className="flex items-end gap-3 pb-1">
-              <Legend tone="var(--primary)" label={t("vms.perks.reservedBay")} />
+              <Legend
+                tone="var(--primary)"
+                label={t("vms.perks.reservedBay")}
+              />
               <Legend
                 tone="color-mix(in oklch, var(--chart-1) 60%, transparent)"
                 label={t("vms.vehicles.onProperty")}
               />
-              <Legend tone="var(--muted)" label={t("vms.vehicles.unassigned")} />
+              <Legend
+                tone="var(--muted)"
+                label={t("vms.vehicles.unassigned")}
+              />
             </div>
           </div>
         </Panel>
@@ -275,6 +294,7 @@ export default function VehiclesPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="vehicles"
           emptyIcon={<Car />}
           className="min-h-0 flex-1"
           toolbar={
@@ -290,7 +310,11 @@ export default function VehiclesPage() {
                   { value: "unscreened", label: t("vms.luggage.unscreened") },
                 ]}
               />
-              <TableSearch value={query} onChange={setQuery} className="ml-auto" />
+              <TableSearch
+                value={query}
+                onChange={setQuery}
+                className="ml-auto"
+              />
             </>
           }
         />

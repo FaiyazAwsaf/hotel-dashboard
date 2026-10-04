@@ -2,8 +2,9 @@
 
 import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Building2, Globe, Moon, Sparkles, Sun } from "lucide-react"
+import { Building2, Globe, Moon, RotateCcw, Sparkles, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
+import { toast } from "sonner"
 
 import {
   CommandDialog,
@@ -18,6 +19,7 @@ import {
 import { useLocale } from "@/lib/i18n/provider"
 import { LOCALE_META, LOCALES } from "@/lib/i18n/config"
 import { NAV_INDEX } from "@/lib/nav"
+import { useSession } from "@/lib/session"
 import { useUi } from "@/lib/store"
 import { useTenants } from "@/lib/data"
 import { HUE_VAR } from "@/lib/hue"
@@ -32,6 +34,7 @@ export function CommandPalette() {
   const setOpen = useUi((state) => state.setCommandOpen)
   const setCopilotOpen = useUi((state) => state.setCopilotOpen)
   const toggleSidebar = useUi((state) => state.toggleSidebar)
+  const resetSession = useSession((state) => state.reset)
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -107,6 +110,20 @@ export function CommandPalette() {
               {t("shell.language")} · {LOCALE_META[code].nativeLabel}
             </CommandItem>
           ))}
+          <CommandItem
+            onSelect={() =>
+              run(() => {
+                resetSession()
+                toast.success(t("shell.resetDemoDone"), {
+                  description: t("shell.resetDemoHint"),
+                })
+              })
+            }
+            value="reset demo data restore clear"
+          >
+            <RotateCcw />
+            {t("shell.resetDemo")}
+          </CommandItem>
         </CommandGroup>
 
         <CommandSeparator />

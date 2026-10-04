@@ -3,6 +3,12 @@
 import * as React from "react"
 
 import { generateDataset } from "@/lib/mock/generate"
+import {
+  applyEdits,
+  useSession,
+  type Collection,
+  type RecordOf,
+} from "@/lib/session"
 import { useUi } from "@/lib/store"
 import { getTenant, TENANTS } from "@/lib/tenants"
 import type { Dataset, Tenant } from "@/lib/types"
@@ -23,11 +29,12 @@ function datasetFor(tenant: Tenant) {
 const DataContext = React.createContext<Dataset | null>(null)
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const tenantId = useUi((state) => state.tenantId)
-  const dataset = React.useMemo(
-    () => datasetFor(getTenant(tenantId)),
-    [tenantId]
-  )
+  const tenant = getTenant(useUi((state) => state.tenantId))
+  const base = React.useMemo(() => datasetFor(tenant), [tenant])
+  // Session edits are layered on top, so whatever the demo user adds or
+  // changes reaches every screen that reads the collection.
+  const edits = useSession((state) => state.edits[tenant.id])
+  const dataset = React.useMemo(() => applyEdits(base, edits), [base, edits])
   return <DataContext.Provider value={dataset}>{children}</DataContext.Provider>
 }
 
@@ -45,6 +52,41 @@ export function useTenants() {
   const tenantId = useUi((state) => state.tenantId)
   const setTenantId = useUi((state) => state.setTenantId)
   return { tenants: TENANTS, tenantId, setTenantId }
+}
+
+/**
+ * Create and change records for the active property. Edits last for the
+ * session and show up everywhere through `useDataset()` — see `lib/session.ts`.
+ * Call these from event handlers, never during render.
+ */
+export function useDataEdits() {
+  const tenantId = useTenant().id
+  const add = useSession((state) => state.add)
+  const update = useSession((state) => state.update)
+  const nextSequence = useSession((state) => state.nextSequence)
+
+  return React.useMemo(
+    () => ({
+      /** Adds a record to the top of its collection. */
+      add: <K extends Collection>(collection: K, record: RecordOf<K>) =>
+        add(tenantId, collection, record),
+      /** Merges `changes` into one record, or into each of several. */
+      update: <K extends Collection>(
+        collection: K,
+        ids: string | readonly string[],
+        changes: Partial<RecordOf<K>>
+      ) =>
+        update(
+          tenantId,
+          collection,
+          typeof ids === "string" ? [ids] : ids,
+          changes
+        ),
+      /** An id for a record created this session, e.g. `visitor_s3`. */
+      newId: (prefix: string) => `${prefix}_s${nextSequence()}`,
+    }),
+    [tenantId, add, update, nextSequence]
+  )
 }
 
 /** Currency formatting bound to both the active locale and the active property. */

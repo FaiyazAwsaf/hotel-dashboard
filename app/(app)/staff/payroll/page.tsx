@@ -46,6 +46,10 @@ export default function PayrollPage() {
       {
         accessorKey: "department",
         header: t("staff.department"),
+        meta: {
+          exportValue: (row) =>
+            t(`staff.departments.${row.department}` as never),
+        },
         cell: ({ row }) => (
           <StatusTag hue="slate">
             {t(`staff.departments.${row.original.department}` as never)}
@@ -83,6 +87,7 @@ export default function PayrollPage() {
       {
         id: "status",
         header: t("common.status"),
+        meta: { exportValue: () => t("finance.paid") },
         enableSorting: false,
         cell: () => (
           <StatusTag hue="green" dot>
@@ -154,6 +159,7 @@ export default function PayrollPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="payroll"
           emptyIcon={<HandCoins />}
           className="min-h-0 flex-1"
           toolbar={

@@ -95,6 +95,9 @@ export default function BookingsPage() {
       {
         accessorKey: "roomTypeId",
         header: t("bookings.roomType"),
+        meta: {
+          exportValue: (row) => t(`rooms.types.${row.roomTypeId}` as never),
+        },
         cell: ({ row }) => (
           <StatusTag hue="slate">
             {t(`rooms.types.${row.original.roomTypeId}` as never)}
@@ -104,6 +107,7 @@ export default function BookingsPage() {
       {
         accessorKey: "source",
         header: t("bookings.source"),
+        meta: { exportValue: (row) => SOURCE_LABEL[row.source][locale] },
         cell: ({ row }) => (
           <StatusTag hue={SOURCE_HUE[row.original.source]}>
             {SOURCE_LABEL[row.original.source][locale]}
@@ -113,6 +117,7 @@ export default function BookingsPage() {
       {
         accessorKey: "status",
         header: t("common.status"),
+        meta: { exportValue: (row) => t(`bookings.${row.status}` as never) },
         cell: ({ row }) => (
           <StatusTag hue={STATUS_HUE[row.original.status]} dot>
             {t(`bookings.${row.original.status}` as never)}
@@ -166,6 +171,7 @@ export default function BookingsPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="bookings"
           className="min-h-0 flex-1"
           toolbar={
             <>

@@ -109,6 +109,7 @@ export default function InvoicesPage() {
       {
         accessorKey: "status",
         header: t("common.status"),
+        meta: { exportValue: (row) => t(`finance.${row.status}` as never) },
         cell: ({ row }) => (
           <StatusTag hue={HUE[row.original.status]} dot>
             {t(`finance.${row.original.status}` as never)}
@@ -185,6 +186,7 @@ export default function InvoicesPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="invoices"
           emptyIcon={<Receipt />}
           className="min-h-0 flex-1"
           toolbar={

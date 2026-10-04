@@ -16,7 +16,7 @@ import { GanttRack, type RackBooking } from "@/components/motion/gantt-rack"
 import { PageHeader } from "@/components/motion/card-shell"
 import { CompoundFilter, UnderlineTabs } from "@/components/motion/segmented"
 import { StatusTag } from "@/components/motion/status-tag"
-import { useDataset, useLookups, useTenant } from "@/lib/data"
+import { useDataEdits, useDataset, useLookups, useTenant } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
 import { addDays, demoToday, isoDay, startOfMonth } from "@/lib/demo-time"
 
@@ -26,26 +26,18 @@ export default function RoomRackPage() {
   const data = useDataset()
   const tenant = useTenant()
   const lookups = useLookups()
+  const edits = useDataEdits()
   const { t, locale, num, date } = useLocale()
 
   const [month, setMonth] = React.useState(() => startOfMonth(demoToday()))
   const [tab, setTab] = React.useState<Tab>("all")
   const [query, setQuery] = React.useState("")
-  /** Drag edits live only in the session — the generated dataset stays pristine. */
-  const [edits, setEdits] = React.useState<
-    Record<string, { roomId: string; checkIn: string; checkOut: string }>
-  >({})
 
   const today = React.useMemo(() => isoDay(demoToday()), [])
 
-  const reservations = React.useMemo(
-    () =>
-      data.reservations.map((reservation) => {
-        const edit = edits[reservation.id]
-        return edit ? { ...reservation, ...edit } : reservation
-      }),
-    [data.reservations, edits]
-  )
+  // Moves are session edits, so they already show here and on every other
+  // screen that reads reservations.
+  const reservations = data.reservations
 
   const typeHue = React.useMemo(
     () => new Map(data.roomTypes.map((type) => [type.id, type.hue])),
@@ -111,10 +103,14 @@ export default function RoomRackPage() {
         return
       }
 
-      setEdits((prev) => ({
-        ...prev,
-        [reservationId]: { roomId, checkIn, checkOut },
-      }))
+      // A room of another type changes the booking's type with it, so the bar
+      // takes the new type's colour and the type stays true everywhere else.
+      edits.update("reservations", reservationId, {
+        roomId,
+        roomTypeId: room?.typeId ?? source.roomTypeId,
+        checkIn,
+        checkOut,
+      })
       toast.success(
         t("rooms.movedBooking", {
           guest: guestName,
@@ -123,7 +119,7 @@ export default function RoomRackPage() {
         { description: `${date(checkIn)} → ${date(checkOut)}` }
       )
     },
-    [reservations, lookups, locale, data.rooms, t, num, date]
+    [reservations, lookups, locale, data.rooms, edits, t, num, date]
   )
 
   return (

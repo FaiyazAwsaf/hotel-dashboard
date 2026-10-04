@@ -8,6 +8,7 @@ import { UiScaleProvider } from "@/components/shell/ui-scale"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { DataProvider } from "@/lib/data"
 import { LocaleProvider } from "@/lib/i18n/provider"
+import { PrintProvider } from "@/lib/print"
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -16,7 +17,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         <DataProvider>
           <TooltipProvider delay={200}>
             <UiScaleProvider />
-            {children}
+            <PrintProvider>{children}</PrintProvider>
             <Toaster
               position="bottom-right"
               toastOptions={{

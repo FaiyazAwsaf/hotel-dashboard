@@ -221,6 +221,9 @@
   }
   html {
     @apply font-sans antialiased;
+    /* Inter has no ৳; fall back to the Bangla face (already loaded) rather
+       than to whatever the OS has, which may be nothing. */
+    font-family: var(--font-sans), var(--font-bangla), system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
     font-size: calc(16px * var(--ui-scale));

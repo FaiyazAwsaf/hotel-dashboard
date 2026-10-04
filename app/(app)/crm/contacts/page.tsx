@@ -107,6 +107,7 @@ export default function ContactsPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="contacts"
           emptyIcon={<Users />}
           className="min-h-0 flex-1"
           toolbar={

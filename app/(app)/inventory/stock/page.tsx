@@ -82,6 +82,16 @@ export default function StockPage() {
         id: "level",
         accessorFn: (row) => level(row),
         header: t("common.status"),
+        meta: {
+          exportValue: (row) =>
+            t(
+              level(row) === "out"
+                ? "inventory.outOfStock"
+                : level(row) === "low"
+                  ? "inventory.lowStock"
+                  : "inventory.inStock"
+            ),
+        },
         cell: ({ row }) => {
           const state = level(row.original)
           return (
@@ -190,6 +200,7 @@ export default function StockPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="stock"
           emptyIcon={<Boxes />}
           className="min-h-0 flex-1"
           toolbar={

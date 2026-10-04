@@ -90,6 +90,12 @@ export default function LuggagePage() {
         accessorFn: (row) =>
           lookups.visitor.get(row.visitorId)?.clearance ?? "standard",
         header: t("vms.clearance.title"),
+        meta: {
+          exportValue: (row) => {
+            const visitor = lookups.visitor.get(row.visitorId)
+            return visitor ? t(CLEARANCE_LABEL[visitor.clearance]) : null
+          },
+        },
         cell: ({ row }) => {
           const visitor = lookups.visitor.get(row.original.visitorId)
           if (!visitor) return null
@@ -103,6 +109,9 @@ export default function LuggagePage() {
       {
         accessorKey: "kind",
         header: t("vms.luggage.kind"),
+        meta: {
+          exportValue: (row) => t(`vms.luggage.kinds.${row.kind}` as never),
+        },
         cell: ({ row }) => (
           <StatusTag hue="slate">
             {t(`vms.luggage.kinds.${row.original.kind}` as never)}
@@ -118,6 +127,10 @@ export default function LuggagePage() {
       {
         accessorKey: "screened",
         header: t("vms.luggage.screened"),
+        meta: {
+          exportValue: (row) =>
+            t(row.screened ? "vms.luggage.screened" : "vms.luggage.unscreened"),
+        },
         cell: ({ row }) =>
           row.original.screened ? (
             <StatusTag hue="green" dot>
@@ -134,6 +147,9 @@ export default function LuggagePage() {
       {
         accessorKey: "state",
         header: t("common.status"),
+        meta: {
+          exportValue: (row) => t(`vms.luggage.states.${row.state}` as never),
+        },
         cell: ({ row }) => (
           <StatusTag hue={STATE_HUE[row.original.state]}>
             {t(`vms.luggage.states.${row.original.state}` as never)}
@@ -212,6 +228,7 @@ export default function LuggagePage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="luggage"
           emptyIcon={<Briefcase />}
           className="min-h-0 flex-1"
           toolbar={
@@ -228,7 +245,11 @@ export default function LuggagePage() {
                       : t(`vms.luggage.states.${value}` as never),
                 }))}
               />
-              <TableSearch value={query} onChange={setQuery} className="ml-auto" />
+              <TableSearch
+                value={query}
+                onChange={setQuery}
+                className="ml-auto"
+              />
             </>
           }
         />

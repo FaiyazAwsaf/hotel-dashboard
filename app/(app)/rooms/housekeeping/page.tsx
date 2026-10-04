@@ -21,7 +21,7 @@ import { KpiStrip } from "@/components/motion/kpi-strip"
 import { ScrollFade } from "@/components/motion/scroll-fade"
 import { StatusTag, HueDot } from "@/components/motion/status-tag"
 import { cn } from "@/lib/utils"
-import { useDataset, useLookups } from "@/lib/data"
+import { useDataEdits, useDataset, useLookups } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
 import { CHART_COLORS } from "@/lib/hue"
 import type {
@@ -47,21 +47,15 @@ const PRIORITY_HUE: Record<TaskPriority, TagHue> = {
 export default function HousekeepingPage() {
   const data = useDataset()
   const lookups = useLookups()
+  const edits = useDataEdits()
   const { t, locale, num } = useLocale()
-  const [moves, setMoves] = React.useState<Record<string, TaskState>>({})
   const [dragging, setDragging] = React.useState<HousekeepingTask | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
 
-  const tasks = React.useMemo(
-    () =>
-      data.housekeeping.map((task) =>
-        moves[task.id] ? { ...task, state: moves[task.id] } : task
-      ),
-    [data.housekeeping, moves]
-  )
+  const tasks = data.housekeeping
 
   const byLane = React.useMemo(() => {
     const map = new Map<TaskState, HousekeepingTask[]>()
@@ -94,7 +88,7 @@ export default function HousekeepingPage() {
     const taskId = String(event.active.id)
     const task = tasks.find((candidate) => candidate.id === taskId)
     if (!lane || !task || task.state === lane) return
-    setMoves((prev) => ({ ...prev, [taskId]: lane }))
+    edits.update("housekeeping", taskId, { state: lane })
     const room = lookups.room.get(task.roomId)
     toast.success(t(`rooms.${lane}` as never), {
       description: `${t("common.room")} ${room?.number ?? ""}`,

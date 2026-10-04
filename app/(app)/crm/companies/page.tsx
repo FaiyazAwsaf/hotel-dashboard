@@ -41,6 +41,10 @@ export default function CompaniesPage() {
       {
         accessorKey: "segment",
         header: t("crm.segmentAndStage"),
+        meta: {
+          exportValue: (row) =>
+            `${t(`crm.segments.${row.segment}` as never)} · ${row.industry[locale]}`,
+        },
         cell: ({ row }) => (
           <span className="flex items-center gap-1">
             <StatusTag hue={row.original.hue}>
@@ -144,6 +148,7 @@ export default function CompaniesPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          exportName="companies"
           emptyIcon={<Building2 />}
           className="min-h-0 flex-1"
           toolbar={

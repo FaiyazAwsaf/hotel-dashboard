@@ -2,7 +2,13 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Briefcase, ScanLine, ShieldCheck, TriangleAlert } from "lucide-react"
+import {
+  Archive,
+  Briefcase,
+  PackageCheck,
+  ShieldCheck,
+  TriangleAlert,
+} from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/motion/avatar-stack"
@@ -15,6 +21,12 @@ import { useDataset, useLookups } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
 import { CHART_COLORS } from "@/lib/hue"
 import { CLEARANCE_HUE, CLEARANCE_LABEL } from "@/lib/vms"
+import {
+  canReturnLuggage,
+  canScreenLuggage,
+  canStoreLuggage,
+  useVmsActions,
+} from "@/lib/vms-actions"
 import type { LuggageItem, LuggageState, TagHue } from "@/lib/types"
 
 const STATE_HUE: Record<LuggageState, TagHue> = {
@@ -36,6 +48,7 @@ const FILTERS = [
 export default function LuggagePage() {
   const data = useDataset()
   const lookups = useLookups()
+  const actions = useVmsActions()
   const { t, locale, num, dec, time } = useLocale()
   const [query, setQuery] = React.useState("")
   const [filter, setFilter] = React.useState<(typeof FILTERS)[number]>("all")
@@ -212,12 +225,7 @@ export default function LuggagePage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title={t("vms.luggage.title")} subtitle={t("vms.title")}>
-        <Button variant="outline" size="sm">
-          <ScanLine />
-          {t("vms.luggage.screened")}
-        </Button>
-      </PageHeader>
+      <PageHeader title={t("vms.luggage.title")} subtitle={t("vms.title")} />
 
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-5">
         <KpiStrip cells={kpis} />
@@ -229,6 +237,43 @@ export default function LuggagePage() {
           rowId={(row) => row.id}
           selectable
           exportName="luggage"
+          bulkActions={(items, clearSelection) => {
+            const run = (action: (items: LuggageItem[]) => void) => () => {
+              action(items)
+              clearSelection()
+            }
+            return (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!items.some(canScreenLuggage)}
+                  onClick={run(actions.markLuggageScreened)}
+                >
+                  <ShieldCheck />
+                  {t("vms.luggage.markScreened")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!items.some(canStoreLuggage)}
+                  onClick={run(actions.storeLuggage)}
+                >
+                  <Archive />
+                  {t("vms.luggage.store")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!items.some(canReturnLuggage)}
+                  onClick={run(actions.returnLuggage)}
+                >
+                  <PackageCheck />
+                  {t("vms.luggage.return")}
+                </Button>
+              </>
+            )
+          }}
           emptyIcon={<Briefcase />}
           className="min-h-0 flex-1"
           toolbar={

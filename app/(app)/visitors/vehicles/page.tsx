@@ -2,8 +2,15 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Car, ParkingSquare, ShieldCheck, TriangleAlert } from "lucide-react"
+import {
+  Car,
+  LogOut,
+  ParkingSquare,
+  ShieldCheck,
+  TriangleAlert,
+} from "lucide-react"
 
+import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/motion/avatar-stack"
 import { DataTable, TableSearch } from "@/components/motion/data-table"
 import { Panel, PageHeader } from "@/components/motion/card-shell"
@@ -14,7 +21,18 @@ import { cn } from "@/lib/utils"
 import { useDataset, useLookups } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
 import { CHART_COLORS } from "@/lib/hue"
-import { CLEARANCE_HUE, CLEARANCE_LABEL, isEscalated } from "@/lib/vms"
+import {
+  bayCode,
+  CLEARANCE_HUE,
+  CLEARANCE_LABEL,
+  isEscalated,
+  PARKING_DECKS,
+} from "@/lib/vms"
+import {
+  canRecordExit,
+  canScreenVehicle,
+  useVmsActions,
+} from "@/lib/vms-actions"
 import type { Vehicle } from "@/lib/types"
 
 const FILTERS = ["all", "onSite", "reserved", "unscreened"] as const
@@ -22,6 +40,7 @@ const FILTERS = ["all", "onSite", "reserved", "unscreened"] as const
 export default function VehiclesPage() {
   const data = useDataset()
   const lookups = useLookups()
+  const actions = useVmsActions()
   const { t, locale, num, time } = useLocale()
   const [query, setQuery] = React.useState("")
   const [filter, setFilter] = React.useState<(typeof FILTERS)[number]>("all")
@@ -68,15 +87,22 @@ export default function VehiclesPage() {
       {
         accessorKey: "make",
         header: t("vms.vehicles.make"),
-        meta: { exportValue: (row) => `${row.make} · ${row.colour[locale]}` },
-        cell: ({ row }) => (
-          <span className="flex items-center gap-1.5">
-            <span className="truncate">{row.original.make}</span>
-            <span className="truncate text-[0.625rem] text-muted-foreground">
-              {row.original.colour[locale]}
+        meta: {
+          exportValue: (row) =>
+            [row.make, row.colour[locale]].filter(Boolean).join(" · ") || null,
+        },
+        // Vehicles registered with a gate pass have only a plate on record.
+        cell: ({ row }) =>
+          row.original.make ? (
+            <span className="flex items-center gap-1.5">
+              <span className="truncate">{row.original.make}</span>
+              <span className="truncate text-[0.625rem] text-muted-foreground">
+                {row.original.colour[locale]}
+              </span>
             </span>
-          </span>
-        ),
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
       },
       {
         id: "driver",
@@ -223,18 +249,11 @@ export default function VehiclesPage() {
     const occupied = new Set(
       data.vehicles.filter((v) => !v.exitAt && v.bay).map((v) => v.bay!)
     )
-    const decks = [
-      { id: "P", label: t("vms.perks.reservedBay"), size: 6 },
-      { id: "B1", label: "B1", size: 42 },
-      { id: "B2", label: "B2", size: 42 },
-    ]
-    return decks.map((deck) => ({
+    return PARKING_DECKS.map((deck) => ({
       ...deck,
+      label: deck.id === "P" ? t("vms.perks.reservedBay") : deck.id,
       bays: Array.from({ length: deck.size }, (_, i) => {
-        const code =
-          deck.id === "P"
-            ? `P${i + 1}`
-            : `${deck.id}-${String(i + 1).padStart(2, "0")}`
+        const code = bayCode(deck.id, i)
         return { code, taken: occupied.has(code) }
       }),
     }))
@@ -295,6 +314,34 @@ export default function VehiclesPage() {
           rowId={(row) => row.id}
           selectable
           exportName="vehicles"
+          bulkActions={(vehicles, clearSelection) => (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!vehicles.some(canScreenVehicle)}
+                onClick={() => {
+                  actions.markVehiclesScreened(vehicles)
+                  clearSelection()
+                }}
+              >
+                <ShieldCheck />
+                {t("vms.vehicles.markScreened")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!vehicles.some(canRecordExit)}
+                onClick={() => {
+                  actions.recordVehicleExit(vehicles)
+                  clearSelection()
+                }}
+              >
+                <LogOut />
+                {t("vms.vehicles.recordExit")}
+              </Button>
+            </>
+          )}
           emptyIcon={<Car />}
           className="min-h-0 flex-1"
           toolbar={

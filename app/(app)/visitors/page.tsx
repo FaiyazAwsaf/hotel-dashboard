@@ -10,7 +10,6 @@ import {
   Briefcase,
   Car,
   Crown,
-  ShieldCheck,
   TriangleAlert,
   Video,
 } from "lucide-react"
@@ -18,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/motion/avatar-stack"
 import { CameraTile } from "@/components/vms/camera-tile"
+import { IssuePassButton } from "@/components/vms/issue-pass"
 import { Panel, PageHeader } from "@/components/motion/card-shell"
 import { KpiStrip } from "@/components/motion/kpi-strip"
 import { ScrollFade } from "@/components/motion/scroll-fade"
@@ -149,14 +149,7 @@ export default function VmsOverviewPage() {
           <Video />
           {t("vms.cctv.wall")}
         </Button>
-        <Button
-          size="sm"
-          nativeButton={false}
-          render={<Link href="/visitors/gate-pass" />}
-        >
-          <ShieldCheck />
-          {t("visitors.issuePass")}
-        </Button>
+        <IssuePassButton />
       </PageHeader>
 
       <div className="grid gap-3 px-5 pb-6">

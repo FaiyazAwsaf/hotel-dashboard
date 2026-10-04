@@ -1,5 +1,70 @@
-import type { ClearanceLevel, TagHue } from "@/lib/types"
+import type {
+  ClearanceLevel,
+  GateId,
+  TagHue,
+  Vehicle,
+  Visitor,
+} from "@/lib/types"
 import type { TranslationKey } from "@/lib/i18n"
+
+export const GATE_IDS: GateId[] = [
+  "mainLobby",
+  "porte",
+  "service",
+  "basement",
+  "banquet",
+  "staff",
+]
+
+/** Badges run V-1200, V-1204, … — the next pass continues the sequence. */
+export function nextBadge(visitors: readonly Visitor[]) {
+  const highest = Math.max(
+    1196,
+    ...visitors.map((visitor) => Number(visitor.badge.slice(2)) || 0)
+  )
+  return `V-${highest + 4}`
+}
+
+/** The parking decks drawn on the vehicles screen. */
+export const PARKING_DECKS = [
+  { id: "P", size: 6 },
+  { id: "B1", size: 42 },
+  { id: "B2", size: 42 },
+] as const
+
+export function bayCode(
+  deck: (typeof PARKING_DECKS)[number]["id"],
+  index: number
+) {
+  return deck === "P"
+    ? `P${index + 1}`
+    : `${deck}-${String(index + 1).padStart(2, "0")}`
+}
+
+/**
+ * The first free bay for a new arrival: VIP and CIP get the reserved
+ * forecourt bays, everyone else the basement decks. Undefined when full.
+ */
+export function freeBay(
+  vehicles: readonly Vehicle[],
+  clearance: ClearanceLevel
+) {
+  const taken = new Set(
+    vehicles
+      .filter((vehicle) => !vehicle.exitAt && vehicle.bay)
+      .map((v) => v.bay)
+  )
+  const decks = isEscalated(clearance)
+    ? PARKING_DECKS.filter((deck) => deck.id === "P")
+    : PARKING_DECKS.filter((deck) => deck.id !== "P")
+  for (const deck of decks) {
+    for (let index = 0; index < deck.size; index++) {
+      const code = bayCode(deck.id, index)
+      if (!taken.has(code)) return code
+    }
+  }
+  return undefined
+}
 
 export const CLEARANCE_ORDER: ClearanceLevel[] = [
   "standard",

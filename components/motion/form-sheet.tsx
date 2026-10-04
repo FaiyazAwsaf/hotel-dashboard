@@ -12,6 +12,13 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -264,8 +271,13 @@ export function FormSheetField({
     <Field data-invalid={error ? true : undefined}>
       <FieldLabel htmlFor={id}>
         {label}
+        {/* Visual only — the control itself carries required. */}
         {required ? (
-          <span className="text-destructive" title={t("common.required")}>
+          <span
+            aria-hidden
+            className="text-destructive"
+            title={t("common.required")}
+          >
             *
           </span>
         ) : null}
@@ -285,5 +297,55 @@ export function FormSheetField({
       ) : null}
       {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : null}
     </Field>
+  )
+}
+
+/**
+ * A select for a `FormSheetField`, with its options as `{ value: label }`:
+ *
+ *   {(field, controls) => (
+ *     <FormSheetSelect field={field} controls={controls} items={GATES} />
+ *   )}
+ */
+export function FormSheetSelect({
+  field,
+  controls,
+  items,
+  defaultValue,
+  onChange,
+}: {
+  field: FormFieldProps
+  controls: FormFieldControls
+  items: Record<string, string>
+  defaultValue?: string
+  onChange?: (value: string) => void
+}) {
+  return (
+    <Select
+      name={field.name}
+      items={items}
+      defaultValue={defaultValue}
+      onValueChange={(value) => {
+        controls.clearError()
+        if (typeof value === "string") onChange?.(value)
+      }}
+    >
+      <SelectTrigger
+        id={field.id}
+        aria-required={field.required || undefined}
+        aria-invalid={field["aria-invalid"]}
+        aria-describedby={field["aria-describedby"]}
+        className="w-full"
+      >
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {Object.entries(items).map(([value, label]) => (
+          <SelectItem key={value} value={value}>
+            {label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }

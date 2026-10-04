@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Car, IdCard, LogOut, ShieldCheck, UserPlus } from "lucide-react"
+import { Car, IdCard, LogOut, Printer, ShieldCheck } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/motion/avatar-stack"
@@ -10,10 +10,14 @@ import { DataTable, TableSearch } from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
 import { KpiStrip } from "@/components/motion/kpi-strip"
 import { StatusTag } from "@/components/motion/status-tag"
+import { CheckOutButton } from "@/components/vms/check-out"
+import { usePrintPasses } from "@/components/vms/gate-pass"
+import { IssuePassButton } from "@/components/vms/issue-pass"
 import { useDataset, useLookups } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
 import { CHART_COLORS } from "@/lib/hue"
 import { CLEARANCE_HUE, CLEARANCE_LABEL, isEscalated } from "@/lib/vms"
+import { canCheckOut, useVmsActions } from "@/lib/vms-actions"
 import type { TagHue, Visitor, VisitorPurpose } from "@/lib/types"
 
 const PURPOSE_HUE: Record<VisitorPurpose, TagHue> = {
@@ -28,6 +32,8 @@ const PURPOSE_HUE: Record<VisitorPurpose, TagHue> = {
 export default function VisitorLogPage() {
   const data = useDataset()
   const lookups = useLookups()
+  const actions = useVmsActions()
+  const printPasses = usePrintPasses()
   const { t, locale, num, time, dateTime } = useLocale()
   const [query, setQuery] = React.useState("")
 
@@ -147,8 +153,25 @@ export default function VisitorLogPage() {
             </StatusTag>
           ),
       },
+      {
+        id: "actions",
+        header: t("common.actions"),
+        meta: { align: "right", export: false },
+        enableSorting: false,
+        cell: ({ row }) =>
+          canCheckOut(row.original) ? (
+            <Button
+              size="xs"
+              variant="ghost"
+              onClick={() => actions.checkOut([row.original])}
+            >
+              <LogOut />
+              {t("frontDesk.checkOut")}
+            </Button>
+          ) : null,
+      },
     ],
-    [lookups, locale, t, time, dateTime]
+    [lookups, locale, t, time, dateTime, actions]
   )
 
   const kpis = React.useMemo(() => {
@@ -187,14 +210,8 @@ export default function VisitorLogPage() {
         title={t("visitors.log")}
         subtitle={t("nav.groups.resources")}
       >
-        <Button variant="outline" size="sm">
-          <LogOut />
-          {t("frontDesk.checkOut")}
-        </Button>
-        <Button size="sm">
-          <UserPlus />
-          {t("visitors.issuePass")}
-        </Button>
+        <CheckOutButton />
+        <IssuePassButton />
       </PageHeader>
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-5">
         <KpiStrip cells={kpis} />
@@ -206,6 +223,34 @@ export default function VisitorLogPage() {
           rowId={(row) => row.id}
           selectable
           exportName="visitor-log"
+          bulkActions={(rows, clearSelection) => {
+            const onSite = rows.filter(canCheckOut)
+            return (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={onSite.length === 0}
+                  onClick={() => printPasses(onSite)}
+                >
+                  <Printer />
+                  {t("vms.pass.printMany")}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={onSite.length === 0}
+                  onClick={() => {
+                    actions.checkOut(rows)
+                    clearSelection()
+                  }}
+                >
+                  <LogOut />
+                  {t("frontDesk.checkOut")}
+                </Button>
+              </>
+            )
+          }}
           emptyIcon={<IdCard />}
           className="min-h-0 flex-1"
           toolbar={

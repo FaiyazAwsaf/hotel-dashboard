@@ -47,6 +47,7 @@ bun run format      # prettier (no semicolons, double quotes, tailwind class sor
 - Edits are deliberately **not persisted**. A reload restores the pristine demo, and server and client renders always match. The ⌘K command "Reset demo data" clears them all.
 - Do not keep page-local copies of edited records; the room rack, housekeeping board and pipeline all edit through this layer.
 - Timestamps on new records come from `demoNow()`.
+- Put domain operations that touch several collections in an actions hook, so every screen stays consistent. For example, `useVmsActions()` in `lib/vms-actions.ts` handles visitor check-out: the visitor, an exit movement and the returned luggage. It also exports `can…` predicates; bulk-action buttons use them to disable themselves.
 
 ### Time and hydration safety
 

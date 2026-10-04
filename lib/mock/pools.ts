@@ -431,6 +431,12 @@ export const GATE_LABELS: Record<string, Bilingual> = {
   staff: { en: "Staff entrance", bn: "কর্মী প্রবেশপথ" },
 }
 
+/** Where a bag is recorded while its owner still carries it. */
+export const LUGGAGE_WITH_VISITOR: Bilingual = {
+  en: "With visitor",
+  bn: "দর্শনার্থীর সাথে",
+}
+
 export const LUGGAGE_LOCATIONS: Bilingual[] = [
   { en: "Left luggage room A", bn: "লাগেজ রুম এ" },
   { en: "Left luggage room B", bn: "লাগেজ রুম বি" },

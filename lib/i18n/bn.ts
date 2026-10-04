@@ -58,7 +58,10 @@ export const bn: Dictionary = {
     selectPage: "এই পাতার সব সারি নির্বাচন করুন",
     selectRow: "সারি নির্বাচন করুন",
     clearSelection: "নির্বাচন মুছুন",
-    exportedRows: "{count}টি সারি রপ্তানি হয়েছে",
+    exportedRows: {
+      one: "{count}টি সারি রপ্তানি হয়েছে",
+      other: "{count}টি সারি রপ্তানি হয়েছে",
+    },
     of: "এর",
     more: "আরও",
     showMore: "আরও দেখুন",
@@ -737,6 +740,21 @@ export const bn: Dictionary = {
         held: "আটক",
         released: "ফেরত দেওয়া",
       },
+      markScreened: "স্ক্রিনিং সম্পন্ন করুন",
+      store: "লাগেজ রুমে রাখুন",
+      return: "মালিককে ফেরত দিন",
+      markedScreened: {
+        one: "{count}টি ব্যাগের স্ক্রিনিং সম্পন্ন",
+        other: "{count}টি ব্যাগের স্ক্রিনিং সম্পন্ন",
+      },
+      stored: {
+        one: "{count}টি ব্যাগ লাগেজ রুমে রাখা হয়েছে",
+        other: "{count}টি ব্যাগ লাগেজ রুমে রাখা হয়েছে",
+      },
+      returned: {
+        one: "{count}টি ব্যাগ মালিককে ফেরত দেওয়া হয়েছে",
+        other: "{count}টি ব্যাগ মালিককে ফেরত দেওয়া হয়েছে",
+      },
     },
     vehicles: {
       title: "যানবাহন",
@@ -758,6 +776,16 @@ export const bn: Dictionary = {
         bus: "কোচ",
         truck: "ট্রাক",
       },
+      markScreened: "স্ক্রিনিং সম্পন্ন করুন",
+      recordExit: "প্রস্থান নথিভুক্ত করুন",
+      markedScreened: {
+        one: "{count}টি গাড়ির স্ক্রিনিং সম্পন্ন",
+        other: "{count}টি গাড়ির স্ক্রিনিং সম্পন্ন",
+      },
+      exitRecorded: {
+        one: "{count}টি গাড়ির প্রস্থান নথিভুক্ত হয়েছে",
+        other: "{count}টি গাড়ির প্রস্থান নথিভুক্ত হয়েছে",
+      },
     },
     cctv: {
       title: "সিসিটিভি",
@@ -778,6 +806,55 @@ export const bn: Dictionary = {
       expand: "বড় করুন",
       collapse: "ছোট করুন",
       demoNotice: "অনুকরণকৃত ফিড — এই প্রোটোটাইপে কোনো ভিডিও চালানো হয় না।",
+    },
+    visitor: "দর্শনার্থী",
+    checkOutTitle: "দর্শনার্থীর প্রস্থান",
+    checkOutHint:
+      "গেটে প্রস্থান নথিভুক্ত করে। দর্শনার্থীর সাথে বা লাগেজ রুমে থাকা ব্যাগ তাঁকে ফেরত দেওয়া হয়; আটক ব্যাগ নিরাপত্তা বিভাগের কাছে থাকে।",
+    nobodyOnSite: "এই মুহূর্তে কেউ ভেতরে নেই",
+    checkedOutOne: "{name}-এর প্রস্থান নথিভুক্ত হয়েছে",
+    checkedOutMany: {
+      one: "{count} জন দর্শনার্থীর প্রস্থান নথিভুক্ত হয়েছে",
+      other: "{count} জন দর্শনার্থীর প্রস্থান নথিভুক্ত হয়েছে",
+    },
+    bagsReturned: {
+      one: "{count}টি ব্যাগ ফেরত দেওয়া হয়েছে",
+      other: "{count}টি ব্যাগ ফেরত দেওয়া হয়েছে",
+    },
+    bagsWithSecurity: {
+      one: "{count}টি ব্যাগ নিরাপত্তা বিভাগের কাছে রয়েছে",
+      other: "{count}টি ব্যাগ নিরাপত্তা বিভাগের কাছে রয়েছে",
+    },
+    skipped: {
+      one: "{count}টি প্রযোজ্য নয় বলে বাদ দেওয়া হয়েছে",
+      other: "{count}টি প্রযোজ্য নয় বলে বাদ দেওয়া হয়েছে",
+    },
+    pass: {
+      title: "গেট পাস ইস্যু",
+      hint: "দর্শনার্থীকে গেটে নিবন্ধন করে এবং পাস প্রিন্টের জন্য প্রস্তুত করে।",
+      company: "প্রতিষ্ঠান",
+      idNumber: "পরিচয়পত্র নম্বর",
+      stay: "প্রত্যাশিত অবস্থান",
+      hours: {
+        one: "{count} ঘণ্টা",
+        other: "{count} ঘণ্টা",
+      },
+      plate: "গাড়ির নম্বরপ্লেট",
+      plateHint: "ঐচ্ছিক — পার্কিং বে স্বয়ংক্রিয়ভাবে বরাদ্দ হয়।",
+      vehicleType: "গাড়ির ধরন",
+      escortHint:
+        "সীমিত ছাড়পত্রের দর্শনার্থীর সাথে একজন নির্দিষ্ট সঙ্গী থাকা আবশ্যক।",
+      cipEscortHint: "ঐচ্ছিক — সিআইপি অতিথির জন্য সৌজন্যমূলক সঙ্গী।",
+      phoneInvalid: "সঠিক ফোন নম্বর লিখুন",
+      issued: "{name}-কে পাস {badge} দেওয়া হয়েছে",
+      issuedTitle: "পাস ইস্যু হয়েছে",
+      bayAssigned: "পার্কিং বে {bay}",
+      noBayFree: "কোনো পার্কিং বে খালি নেই",
+      visitorPass: "দর্শনার্থী পাস",
+      print: "পাস প্রিন্ট করুন",
+      printMany: "পাস প্রিন্ট করুন",
+      printTitle: "গেট পাস {badge}",
+      printTitleMany: "গেট পাস",
     },
   },
   finance: {

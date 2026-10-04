@@ -17,6 +17,7 @@ import {
   CAMERA_NAMES,
   CAMERA_ZONES,
   LUGGAGE_LOCATIONS,
+  LUGGAGE_WITH_VISITOR,
   MOVEMENT_FLAGS,
   VEHICLE_COLOURS,
   VEHICLE_MAKES,
@@ -178,7 +179,7 @@ export function buildLuggage(
         screenedByStaffId: screened ? rng.pick(security)?.id : undefined,
         location:
           state === "withVisitor"
-            ? { en: "With visitor", bn: "দর্শনার্থীর সাথে" }
+            ? LUGGAGE_WITH_VISITOR
             : rng.pick(LUGGAGE_LOCATIONS),
         checkedInAt: checkedIn.toISOString(),
         releasedAt:

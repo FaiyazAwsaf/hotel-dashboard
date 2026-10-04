@@ -98,7 +98,7 @@ export function DataTable<T>({
   toolbar?: React.ReactNode
   pageSize?: number
 }) {
-  const { t, num } = useLocale()
+  const { t, tk, num } = useLocale()
   const tenant = useTenant()
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({})
@@ -187,7 +187,11 @@ export function DataTable<T>({
       exportColumns(table.getAllLeafColumns()),
       selectedRows
     )
-    toast.success(t("common.exportedRows", { count: num(selectedCount) }))
+    toast.success(
+      tk(`common.exportedRows.${selectedCount === 1 ? "one" : "other"}`, {
+        count: num(selectedCount),
+      })
+    )
   }
 
   return (

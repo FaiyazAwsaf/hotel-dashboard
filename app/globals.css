@@ -5,7 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-heading: var(--font-sans);
+  /* Titles set their own family, so it needs the Bangla fallback too. */
+  --font-heading: var(--font-sans), var(--font-bangla);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --font-bangla: var(--font-bangla);

@@ -7,7 +7,11 @@ import { CalendarDays, CalendarPlus, Download } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/motion/avatar-stack"
-import { DataTable, TableSearch } from "@/components/motion/data-table"
+import {
+  DataTable,
+  TableSearch,
+  type DataTableHandle,
+} from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
 import { SegmentedPills } from "@/components/motion/segmented"
 import { StatusTag } from "@/components/motion/status-tag"
@@ -39,6 +43,7 @@ export default function BookingsPage() {
   const money = useMoney()
   const { t, locale, num, date } = useLocale()
   const [query, setQuery] = React.useState("")
+  const table = React.useRef<DataTableHandle<Reservation>>(null)
   const [filter, setFilter] = React.useState<(typeof FILTERS)[number]>("all")
 
   const rows = React.useMemo(
@@ -149,7 +154,11 @@ export default function BookingsPage() {
           <CalendarDays />
           {t("nav.bookingCalendar")}
         </Button>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.current?.exportCsv()}
+        >
           <Download />
           {t("common.export")}
         </Button>
@@ -171,6 +180,7 @@ export default function BookingsPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          handle={table}
           exportName="bookings"
           className="min-h-0 flex-1"
           toolbar={

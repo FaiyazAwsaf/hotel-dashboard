@@ -21,6 +21,7 @@ import {
 import { GatePassCard, usePrintPasses } from "@/components/vms/gate-pass"
 import { useDataset } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
+import { isPhone } from "@/lib/validate"
 import { CLEARANCE_LABEL, CLEARANCE_ORDER, GATE_IDS } from "@/lib/vms"
 import { useVmsActions, type NewPass } from "@/lib/vms-actions"
 import type {
@@ -121,11 +122,7 @@ function IssuePassSheet({
     Object.fromEntries(values.map((value) => [value, tk(`${key}.${value}`)]))
 
   const submit = (values: Record<string, string>) => {
-    const digits = values.phone.replace(/\D/g, "")
-    if (
-      values.phone &&
-      (!/^[+\d\s()-]+$/.test(values.phone) || digits.length < 7)
-    ) {
+    if (values.phone && !isPhone(values.phone)) {
       return { phone: t("vms.pass.phoneInvalid") }
     }
     const pass: NewPass = {

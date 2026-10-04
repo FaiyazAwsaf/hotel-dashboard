@@ -21,6 +21,16 @@ export type Tenant = {
   hue: TagHue
   initials: string
   established: number
+  /** What a hotel bill adds on top of the room rate in this country. */
+  tax: TaxRules
+}
+
+export type TaxRules = {
+  /** The sales tax's local name. */
+  name: "vat" | "gst"
+  /** Sales tax rate, charged on the room rate plus service charge. */
+  rate: number
+  serviceCharge: number
 }
 
 /* ------------------------------------------------------------------ *

@@ -97,13 +97,17 @@ Every page is a client component, but each is still server-rendered once. Server
 - **`DataTable` with `selectable`:** selecting rows opens a selection bar with "select all" across pages and **Export** (CSV of the selected rows).
   - Pass `bulkActions={(rows, clearSelection) => …}` to add page-specific actions, and `exportName` (an English slug) to name the exported file.
   - Exports use each column's accessor value. Enum columns need `meta: { exportValue: (row) => label }`, or the file gets raw keys like `checkedIn`. `meta: { export: false }` leaves a column out.
+  - A page-header Export button calls `exportCsv()` through `handle={ref}` (a `DataTableHandle`). It exports the selection if there is one, else every row the search and filters show.
 - **Forms:** use `FormSheet` + `FormSheetField` (`components/motion/form-sheet.tsx`). It is a side panel with required-field checks and errors in the interface language.
   - The field render prop gives props to spread onto the control.
   - `Select` and other controls without DOM change events call `clearError` from the render prop's second argument.
 - **Files and printing:**
   - `lib/export.ts` has `downloadCsv` and `exportFileName`. Files are UTF-8 with a byte-order mark so Excel reads Bangla, and the export guards against spreadsheet formulas.
   - `lib/print.tsx` has `usePrint()` and `PrintDocument`. The content is rendered into a hidden iframe carrying the app's styles, so it always prints in the light theme at 100% scale, uncut by the app frame. `@page` size and margin are options.
-  - Keep printed content static: entry animations print at their first frame.
+  - Keep printed content static: entry animations print at their first frame. Give Recharts charts a fixed size and `isAnimationActive={false}` (see `ReportPrint` in `app/(app)/ai/reports/page.tsx`).
+- **Share / send:** `SendSheet` (`components/motion/send-sheet.tsx`) is the Email/WhatsApp send panel. Sending is simulated with a progress toast; nothing leaves the browser.
+- **Invoices and tax:** each tenant has `tax` rules (VAT 15% in Bangladesh, GST 9% in Singapore, both with a 10% service charge). Use `invoiceBreakdown()` and `invoiceStays()` from `lib/finance.ts` rather than recomputing taxes.
+- **Report library:** the report definitions and their CSV downloads live in `lib/reports.ts` (`REPORTS`, `useReportDownload()`). Figures with no source data are seeded per record with `createRng(...)`, so they never shift the main dataset.
 - `cn` is imported from the `cn` npm package through `lib/utils.ts`, not built from clsx and tailwind-merge.
 - Colors are tokens in `app/globals.css` (Tailwind v4 `@theme inline`). Entity colors use the `TagHue` palette (`--hue-*` variables, `tag-*` classes, `hueFor(key)` in `lib/hue.ts`). Chart series use `CHART_COLORS`. Do not hard-code colors.
 - The root font size is `16px * var(--ui-scale)` (90–140%). Size text and spacing in `rem` (the codebase uses `text-[0.6875rem]` and similar, not `px`) so that everything scales together.

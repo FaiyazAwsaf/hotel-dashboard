@@ -2,10 +2,20 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Download, Receipt, Send } from "lucide-react"
+import { Download, Printer, Receipt, Send } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { DataTable, TableSearch } from "@/components/motion/data-table"
+import {
+  InvoiceSheet,
+  INVOICE_STATUS_HUE,
+  ShareInvoiceSheet,
+  usePrintInvoices,
+} from "@/components/finance/invoice"
+import {
+  DataTable,
+  TableSearch,
+  type DataTableHandle,
+} from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
 import { KpiStrip } from "@/components/motion/kpi-strip"
 import { SegmentedPills } from "@/components/motion/segmented"
@@ -13,14 +23,7 @@ import { StatusTag } from "@/components/motion/status-tag"
 import { useDataset, useLookups, useMoney } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
 import { CHART_COLORS } from "@/lib/hue"
-import type { Invoice, InvoiceStatus, TagHue } from "@/lib/types"
-
-const HUE: Record<InvoiceStatus, TagHue> = {
-  paid: "green",
-  due: "blue",
-  overdue: "rose",
-  partiallyPaid: "amber",
-}
+import type { Invoice } from "@/lib/types"
 
 const FILTERS = ["all", "paid", "due", "overdue", "partiallyPaid"] as const
 
@@ -31,6 +34,14 @@ export default function InvoicesPage() {
   const { t, locale, date } = useLocale()
   const [query, setQuery] = React.useState("")
   const [filter, setFilter] = React.useState<(typeof FILTERS)[number]>("all")
+  const [openId, setOpenId] = React.useState<string | null>(null)
+  const [sharing, setSharing] = React.useState<{ preselect?: string } | null>(
+    null
+  )
+  const table = React.useRef<DataTableHandle<Invoice>>(null)
+  const printInvoices = usePrintInvoices()
+
+  const opened = data.invoices.find((invoice) => invoice.id === openId) ?? null
 
   const rows = React.useMemo(
     () =>
@@ -111,7 +122,7 @@ export default function InvoicesPage() {
         header: t("common.status"),
         meta: { exportValue: (row) => t(`finance.${row.status}` as never) },
         cell: ({ row }) => (
-          <StatusTag hue={HUE[row.original.status]} dot>
+          <StatusTag hue={INVOICE_STATUS_HUE[row.original.status]} dot>
             {t(`finance.${row.original.status}` as never)}
           </StatusTag>
         ),
@@ -168,11 +179,25 @@ export default function InvoicesPage() {
         title={t("finance.invoices")}
         subtitle={t("nav.groups.resources")}
       >
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            // One selected invoice is the one to send.
+            const selected = table.current?.selectedRows() ?? []
+            setSharing({
+              preselect: selected.length === 1 ? selected[0].id : undefined,
+            })
+          }}
+        >
           <Send />
           {t("common.share")}
         </Button>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.current?.exportCsv()}
+        >
           <Download />
           {t("common.export")}
         </Button>
@@ -187,6 +212,18 @@ export default function InvoicesPage() {
           rowId={(row) => row.id}
           selectable
           exportName="invoices"
+          handle={table}
+          onRowClick={(invoice) => setOpenId(invoice.id)}
+          bulkActions={(selected) => (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => printInvoices(selected)}
+            >
+              <Printer />
+              {t("common.print")}
+            </Button>
+          )}
           emptyIcon={<Receipt />}
           className="min-h-0 flex-1"
           toolbar={
@@ -212,6 +249,12 @@ export default function InvoicesPage() {
           }
         />
       </div>
+      <InvoiceSheet invoice={opened} onClose={() => setOpenId(null)} />
+      <ShareInvoiceSheet
+        open={sharing !== null}
+        onOpenChange={(open) => !open && setSharing(null)}
+        preselect={sharing?.preselect}
+      />
     </div>
   )
 }

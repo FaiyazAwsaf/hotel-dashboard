@@ -6,7 +6,11 @@ import { Download, HandCoins } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Avatar } from "@/components/motion/avatar-stack"
-import { DataTable, TableSearch } from "@/components/motion/data-table"
+import {
+  DataTable,
+  TableSearch,
+  type DataTableHandle,
+} from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
 import { KpiStrip } from "@/components/motion/kpi-strip"
 import { StatusTag } from "@/components/motion/status-tag"
@@ -21,6 +25,7 @@ export default function PayrollPage() {
   const money = useMoney()
   const { t, locale, num, date } = useLocale()
   const [query, setQuery] = React.useState("")
+  const table = React.useRef<DataTableHandle<StaffMember>>(null)
 
   const deduction = (member: StaffMember) => Math.round(member.salary * 0.12)
 
@@ -145,7 +150,11 @@ export default function PayrollPage() {
         title={t("staff.payroll")}
         subtitle={`${t("staff.payPeriod")} · ${date(demoToday(), { month: "long", year: "numeric" })}`}
       >
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => table.current?.exportCsv()}
+        >
           <Download />
           {t("common.export")}
         </Button>
@@ -159,6 +168,7 @@ export default function PayrollPage() {
           onGlobalFilterChange={setQuery}
           rowId={(row) => row.id}
           selectable
+          handle={table}
           exportName="payroll"
           emptyIcon={<HandCoins />}
           className="min-h-0 flex-1"

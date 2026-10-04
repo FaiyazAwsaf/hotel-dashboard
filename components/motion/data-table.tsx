@@ -57,6 +57,14 @@ declare module "@tanstack/react-table" {
   }
 }
 
+/** Lets the page's own buttons act on the table, e.g. a header Export. */
+export type DataTableHandle<T> = {
+  /** Downloads the selected rows, or else every row the search and filters show. */
+  exportCsv: () => void
+  /** The selected rows, in on-screen order. */
+  selectedRows: () => T[]
+}
+
 /**
  * crm.jpg's table: hairline rows, accent bulk-select checkboxes with an
  * indeterminate header state, click-to-sort headers and a sticky header band.
@@ -66,6 +74,9 @@ declare module "@tanstack/react-table" {
  * the page supplies. Only rows the current search and filters show stay
  * selected — a new search clears the selection, and rows that leave `data`
  * (a filter pill, an edit) leave it too.
+ *
+ * A header Export button calls `exportCsv()` through `handle`, so it follows
+ * the same rules: the selection if there is one, else what the table shows.
  */
 export function DataTable<T>({
   data,
@@ -75,6 +86,7 @@ export function DataTable<T>({
   selectable = false,
   bulkActions,
   exportName = "export",
+  handle,
   onRowClick,
   rowId,
   emptyIcon,
@@ -91,6 +103,7 @@ export function DataTable<T>({
   bulkActions?: (rows: T[], clearSelection: () => void) => React.ReactNode
   /** English slug for exported file names, e.g. `"bookings"`. */
   exportName?: string
+  handle?: React.Ref<DataTableHandle<T>>
   onRowClick?: (row: T) => void
   rowId?: (row: T) => string
   emptyIcon?: React.ReactNode
@@ -181,18 +194,45 @@ export function DataTable<T>({
   const selectedCount = selectedRows.length
   const filteredCount = table.getFilteredRowModel().rows.length
 
-  const exportSelected = () => {
+  const exportRows = (rows: Row<T>[]) => {
+    if (rows.length === 0) {
+      toast.info(t("common.nothingToExport"))
+      return
+    }
     downloadCsv(
       exportFileName(tenant, exportName),
       exportColumns(table.getAllLeafColumns()),
-      selectedRows
+      rows
     )
     toast.success(
-      tk(`common.exportedRows.${selectedCount === 1 ? "one" : "other"}`, {
-        count: num(selectedCount),
+      tk(`common.exportedRows.${rows.length === 1 ? "one" : "other"}`, {
+        count: num(rows.length),
       })
     )
   }
+
+  // Read at call time, so the handle never acts on a stale selection.
+  const exportRowsRef = React.useRef(exportRows)
+  React.useEffect(() => {
+    exportRowsRef.current = exportRows
+  })
+  React.useImperativeHandle(
+    handle,
+    () => ({
+      exportCsv: () => {
+        // In on-screen order, across every page.
+        const shown = table.getPrePaginationRowModel().rows
+        const selected = shown.filter((row) => row.getIsSelected())
+        exportRowsRef.current(selected.length > 0 ? selected : shown)
+      },
+      selectedRows: () =>
+        table
+          .getPrePaginationRowModel()
+          .rows.filter((row) => row.getIsSelected())
+          .map((row) => row.original),
+    }),
+    [table]
+  )
 
   return (
     <div
@@ -231,7 +271,11 @@ export function DataTable<T>({
               selectedRows.map((row) => row.original),
               clearSelection
             )}
-            <Button variant="outline" size="sm" onClick={exportSelected}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => exportRows(selectedRows)}
+            >
               <Download />
               {t("common.export")}
             </Button>

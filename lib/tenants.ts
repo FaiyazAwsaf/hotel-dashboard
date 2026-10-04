@@ -15,6 +15,7 @@ export const TENANTS: Tenant[] = [
     hue: "blue",
     initials: "SR",
     established: 2011,
+    tax: { name: "vat", rate: 0.15, serviceCharge: 0.1 },
   },
   {
     id: "t_ocean_pearl",
@@ -30,6 +31,7 @@ export const TENANTS: Tenant[] = [
     hue: "teal",
     initials: "OP",
     established: 2016,
+    tax: { name: "vat", rate: 0.15, serviceCharge: 0.1 },
   },
   {
     id: "t_sarina_bay",
@@ -45,6 +47,7 @@ export const TENANTS: Tenant[] = [
     hue: "purple",
     initials: "SB",
     established: 2021,
+    tax: { name: "gst", rate: 0.09, serviceCharge: 0.1 },
   },
 ]
 

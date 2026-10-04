@@ -20,6 +20,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
             <PrintProvider>{children}</PrintProvider>
             <Toaster
               position="bottom-right"
+              // Sonner sets its own system font stack, which has no Bangla
+              // in most browsers; use the app's fonts instead.
+              style={{ fontFamily: "inherit" }}
               toastOptions={{
                 classNames: {
                   toast:

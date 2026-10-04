@@ -31,7 +31,12 @@ export type PrintOptions = {
   margin?: string
 }
 
-type PrintJob = PrintOptions & { id: number; content: React.ReactNode }
+type PrintJob = PrintOptions & {
+  id: number
+  content: React.ReactNode
+  /** Where focus was, to hand it back once the dialog closes. */
+  returnFocus: Element | null
+}
 
 type Print = (content: React.ReactNode, options?: PrintOptions) => void
 
@@ -49,7 +54,12 @@ export function PrintProvider({ children }: { children: React.ReactNode }) {
   const print = React.useCallback<Print>((content, options = {}) => {
     jobCount.current += 1
     setMount(null)
-    setJob({ ...options, content, id: jobCount.current })
+    setJob({
+      ...options,
+      content,
+      id: jobCount.current,
+      returnFocus: document.activeElement,
+    })
   }, [])
 
   /** Dresses the blank iframe in the app's styles once it has loaded. */
@@ -102,6 +112,12 @@ export function PrintProvider({ children }: { children: React.ReactNode }) {
 
     const finish = () => {
       document.title = previousTitle
+      // Printing focused the frame, which is about to go; without this the
+      // page ignores the keyboard (⌘K, Escape) until the next click.
+      window.focus()
+      if (job.returnFocus instanceof HTMLElement) {
+        job.returnFocus.focus({ preventScroll: true })
+      }
       // Let the browser finish with the frame before it is removed.
       setTimeout(() => {
         setJob((current) => (current?.id === job.id ? null : current))

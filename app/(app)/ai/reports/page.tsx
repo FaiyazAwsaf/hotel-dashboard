@@ -31,6 +31,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { MiniTooltip } from "@/components/ai/tool-call-card"
 import { PageHeader } from "@/components/motion/card-shell"
+import { SendSheet } from "@/components/motion/send-sheet"
 import {
   PipelineRunner,
   usePipeline,
@@ -43,8 +44,12 @@ import { StreamingText } from "@/components/motion/streaming-text"
 import { useDataset, useMoney, useTenant } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
 import { demoToday } from "@/lib/demo-time"
+import { exportFileName } from "@/lib/export"
 import { CHART_COLORS } from "@/lib/hue"
+import { PrintDocument, usePrint } from "@/lib/print"
+import { useUi } from "@/lib/store"
 import { cn } from "@/lib/utils"
+import type { Kpi } from "@/lib/types"
 
 const TEMPLATES = [
   {
@@ -79,7 +84,16 @@ export default function ReportStudioPage() {
   const tenant = useTenant()
   const money = useMoney()
   const { t, locale, num, date, pct } = useLocale()
-  const [prompt, setPrompt] = React.useState("")
+  const print = usePrint()
+  // The report library can hand over a report to start from.
+  const [prompt, setPrompt] = React.useState(
+    () => useUi.getState().studioDraft ?? ""
+  )
+  const [sharing, setSharing] = React.useState(false)
+
+  React.useEffect(() => {
+    useUi.getState().setStudioDraft(null)
+  }, [])
 
   const steps = React.useMemo<PipelineStep[]>(
     () => [
@@ -189,21 +203,75 @@ export default function ReportStudioPage() {
       ? `গত ৯০ দিনে ${tenant.name.bn} এর রেভপার আগের প্রান্তিকের তুলনায় ${num(Math.abs(data.kpis[2].delta), { maximumFractionDigits: 1 })}% বেড়েছে, এবং প্রায় পুরো বৃদ্ধিটাই এসেছে ভাড়া থেকে, অকুপেন্সি থেকে নয় — যা স্বাস্থ্যকর। এন্টারপ্রাইজ ও এয়ারলাইন সেগমেন্ট মিলে অ্যাকাউন্ট মূল্যের সিংহভাগ ধরে রেখেছে, তবে মিড-মার্কেট সেগমেন্টে কক্ষ-রাত প্রতি আয় সবচেয়ে দ্রুত বাড়ছে। ঝুঁকি একটাই: ওটিএ নির্ভরতা এখনও এক-তৃতীয়াংশের বেশি, এবং সেখানে কমিশন বাদ দিলে প্রকৃত রেভপার প্রায় ৯% কম।`
       : `Over the last 90 days ${tenant.name.en} lifted RevPAR ${num(Math.abs(data.kpis[2].delta), { maximumFractionDigits: 1 })}% against the prior quarter, and almost all of that came from rate rather than occupancy — which is the healthy way to get it. Enterprise and airline accounts still carry the majority of account value, but mid-market is growing revenue per room night fastest. The one real risk is channel concentration: OTAs remain over a third of the mix, and once commission is netted off, true RevPAR on those room nights runs about 9% lower.`
 
+  const title = prompt.trim() || TEMPLATES[0][locale]
+  const generatedOn = date(demoToday(), {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  })
+
+  const printReport = () =>
+    print(
+      <PrintDocument title={t("ai.reportStudio")}>
+        <ReportPrint
+          title={title}
+          date={generatedOn}
+          kpis={data.kpis.slice(0, 3)}
+          narrative={narrative}
+          monthly={monthly}
+          segments={segments}
+        />
+      </PrintDocument>,
+      { title, size: "A4" }
+    )
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
         title={t("ai.reportStudio")}
         subtitle={t("ai.reportStudioSubtitle")}
       >
-        <Button variant="outline" size="sm" disabled={!done}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!done}
+          title={done ? undefined : t("ai.report.runFirst")}
+          onClick={() => setSharing(true)}
+        >
           <Share2 />
           {t("common.share")}
         </Button>
-        <Button variant="outline" size="sm" disabled={!done}>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!done}
+          title={done ? t("ai.report.exportHint") : t("ai.report.runFirst")}
+          onClick={printReport}
+        >
           <Download />
           {t("common.export")}
         </Button>
       </PageHeader>
+      <SendSheet
+        open={sharing}
+        onOpenChange={setSharing}
+        title={t("ai.report.shareTitle")}
+        description={t("ai.report.shareHint")}
+        attachment={exportFileName(tenant, "report", "pdf")}
+        subject={title}
+        message={[
+          t("ai.report.shareGreeting"),
+          "",
+          t("ai.report.shareBody", {
+            title,
+            property: tenant.name[locale],
+            date: generatedOn,
+          }),
+          "",
+          narrative,
+        ].join("\n")}
+        sentMessage={(to) => t("ai.report.sent", { to })}
+      />
 
       <div className="grid min-h-0 flex-1 gap-3 px-5 pb-5 lg:grid-cols-[340px_1fr]">
         <div className="flex min-h-0 flex-col gap-3">
@@ -284,15 +352,11 @@ export default function ReportStudioPage() {
                       {t("common.ai")}
                     </StatusTag>
                     <span className="nums text-[0.625rem] text-muted-foreground">
-                      {date(demoToday(), {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
+                      {generatedOn}
                     </span>
                   </div>
                   <h2 className="mt-2 text-lg font-medium tracking-tight">
-                    {prompt || TEMPLATES[0][locale]}
+                    {title}
                   </h2>
                   <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">
                     {tenant.name[locale]} · {tenant.city[locale]}
@@ -472,5 +536,169 @@ function Section({
         </motion.section>
       ) : null}
     </AnimatePresence>
+  )
+}
+
+/**
+ * The generated report on paper. Static: full narrative instead of the
+ * streaming one, fixed-size charts with their animations off.
+ */
+function ReportPrint({
+  title,
+  date,
+  kpis,
+  narrative,
+  monthly,
+  segments,
+}: {
+  title: string
+  date: string
+  kpis: Kpi[]
+  narrative: string
+  monthly: { label: string; rooms: number; fnb: number }[]
+  segments: { segment: string; label: string; value: number; color: string }[]
+}) {
+  const tenant = useTenant()
+  const money = useMoney()
+  const { t, locale, pct } = useLocale()
+  const segmentTotal = segments.reduce((sum, entry) => sum + entry.value, 0)
+
+  const kpiValue = (kpi: Kpi) =>
+    kpi.format === "percent"
+      ? pct(kpi.value, 1)
+      : kpi.format === "currency"
+        ? money.format(kpi.value)
+        : String(kpi.value)
+  const signed = (value: number) =>
+    `${value > 0 ? "+" : value < 0 ? "−" : ""}${pct(Math.abs(value), 1)}`
+
+  return (
+    <div className="flex flex-col gap-6 text-xs">
+      <div>
+        <div className="flex items-center gap-2">
+          <StatusTag hue="blue" dot>
+            <Sparkles className="size-2" />
+            {t("common.ai")}
+          </StatusTag>
+          <span className="nums text-[0.625rem] text-muted-foreground">
+            {date}
+          </span>
+        </div>
+        <h2 className="mt-2 text-lg font-medium tracking-tight">{title}</h2>
+        <p className="mt-0.5 text-[0.6875rem] text-muted-foreground">
+          {tenant.name[locale]} · {tenant.city[locale]}
+        </p>
+      </div>
+
+      <section className="grid grid-cols-3 gap-2">
+        {kpis.map((kpi) => (
+          <div key={kpi.id} className="rounded-lg bg-muted/60 px-3 py-2.5">
+            <div className="text-[0.625rem] text-muted-foreground">
+              {t(kpi.labelKey as never)}
+            </div>
+            <div className="nums mt-0.5 text-base font-medium">
+              {kpiValue(kpi)}
+            </div>
+            <div className="nums text-[0.625rem] text-muted-foreground">
+              {signed(kpi.delta)} {t("common.vsLastPeriod")}
+            </div>
+          </div>
+        ))}
+      </section>
+
+      <section>
+        <h3 className="micro pb-2">{t("ai.narrative")}</h3>
+        <p className="leading-relaxed">{narrative}</p>
+      </section>
+
+      <section className="break-inside-avoid">
+        <h3 className="micro pb-2">{t("finance.bySegment")}</h3>
+        <div className="flex items-start gap-6">
+          <BarChart
+            width={400}
+            height={200}
+            data={monthly}
+            margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+          >
+            <CartesianGrid vertical={false} stroke="var(--hairline)" />
+            <XAxis
+              dataKey="label"
+              tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              tick={{ fontSize: 9, fill: "var(--muted-foreground)" }}
+              axisLine={false}
+              tickLine={false}
+              width={52}
+              tickFormatter={(value) => money.compact(Number(value))}
+            />
+            <Bar
+              dataKey="rooms"
+              stackId="a"
+              fill="var(--chart-1)"
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="fnb"
+              stackId="a"
+              fill="var(--chart-2)"
+              radius={[3, 3, 0, 0]}
+              isAnimationActive={false}
+            />
+          </BarChart>
+          <table className="min-w-0 flex-1 border-separate border-spacing-0">
+            <tbody>
+              {segments.map((entry) => (
+                <tr key={entry.segment}>
+                  <td className="border-b border-[var(--hairline)] py-1.5">
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className="size-1.5 rounded-full"
+                        style={{ background: entry.color }}
+                      />
+                      {entry.label}
+                    </span>
+                  </td>
+                  <td className="nums border-b border-[var(--hairline)] py-1.5 text-right">
+                    {money.compact(entry.value)}
+                  </td>
+                  <td className="nums w-12 border-b border-[var(--hairline)] py-1.5 text-right text-muted-foreground">
+                    {pct(
+                      segmentTotal ? (entry.value / segmentTotal) * 100 : 0,
+                      0
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-2 flex gap-4 text-[0.625rem] text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-[var(--chart-1)]" />
+            {t("dashboard.rooms")}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-1.5 rounded-full bg-[var(--chart-2)]" />
+            {t("dashboard.fnb")}
+          </span>
+        </div>
+      </section>
+
+      <section>
+        <h3 className="micro pb-2">{t("ai.sources")}</h3>
+        <p className="text-muted-foreground">
+          {[
+            t("nav.bookings"),
+            t("nav.folios"),
+            t("nav.companies"),
+            t("nav.channels"),
+            t("reports.nightAudit"),
+          ].join(" · ")}
+        </p>
+      </section>
+    </div>
   )
 }

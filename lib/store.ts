@@ -46,6 +46,10 @@ type UiState = {
   reportRange: ReportRange
   setReportRange: (range: ReportRange) => void
 
+  /** A request for Report studio to start from, set by the report library. */
+  studioDraft: string | null
+  setStudioDraft: (value: string | null) => void
+
   /** Conversations the demo user has manually flipped off autopilot */
   autopilotOverrides: Record<string, boolean>
   setAutopilot: (conversationId: string, value: boolean) => void
@@ -80,6 +84,9 @@ export const useUi = create<UiState>()(
       // stale and confusing the next time the demo is opened.
       reportRange: DEFAULT_REPORT_RANGE,
       setReportRange: (reportRange) => set({ reportRange }),
+
+      studioDraft: null,
+      setStudioDraft: (studioDraft) => set({ studioDraft }),
 
       autopilotOverrides: {},
       setAutopilot: (conversationId, value) =>

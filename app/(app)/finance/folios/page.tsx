@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react"
 import { FileText, Printer } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { usePrintFolio } from "@/components/finance/folio-statement"
 import { Avatar } from "@/components/motion/avatar-stack"
 import { Panel, EmptyState, PageHeader } from "@/components/motion/card-shell"
 import { ScrollFade } from "@/components/motion/scroll-fade"
@@ -28,6 +29,7 @@ export default function FoliosPage() {
   const money = useMoney()
   const { t, locale, num, date } = useLocale()
   const [selectedId, setSelectedId] = React.useState(data.folios[0]?.id)
+  const printFolio = usePrintFolio()
 
   React.useEffect(() => setSelectedId(data.folios[0]?.id), [data.folios])
 
@@ -42,7 +44,12 @@ export default function FoliosPage() {
         title={t("finance.folios")}
         subtitle={`${num(data.folios.length)} ${t("dashboard.inHouse").toLowerCase()}`}
       >
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={!selected}
+          onClick={() => selected && printFolio(selected)}
+        >
           <Printer />
           {t("common.print")}
         </Button>

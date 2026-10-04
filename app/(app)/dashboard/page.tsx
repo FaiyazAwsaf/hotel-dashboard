@@ -7,7 +7,6 @@ import {
   ArrowRight,
   CalendarPlus,
   Check,
-  Download,
   DoorOpen,
   LogOut,
   Sparkles,
@@ -16,6 +15,7 @@ import {
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { DashboardExportMenu } from "@/components/dashboard/dashboard-export"
 import { CombChart } from "@/components/motion/comb-chart"
 import { KpiStrip, DeltaPill } from "@/components/motion/kpi-strip"
 import { NumberTicker } from "@/components/motion/number-ticker"
@@ -181,10 +181,12 @@ export default function DashboardPage() {
           value={reportRange.preset as Range}
           onChange={(value) => setReportRange(resolvePreset(value))}
         />
-        <Button variant="outline" size="sm">
-          <Download />
-          {t("common.export")}
-        </Button>
+        <DashboardExportMenu
+          days={window}
+          kpis={kpis}
+          streams={streams}
+          glance={glance}
+        />
         <Button
           size="sm"
           nativeButton={false}

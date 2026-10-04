@@ -15,6 +15,7 @@ export function Panel({
   subtitle,
   actions,
   onExpand,
+  expandLabel,
   onFilter,
   className,
   bodyClassName,
@@ -25,6 +26,8 @@ export function Panel({
   subtitle?: React.ReactNode
   actions?: React.ReactNode
   onExpand?: () => void
+  /** What the ↗ button does, for its tooltip and screen readers. */
+  expandLabel?: string
   onFilter?: () => void
   className?: string
   bodyClassName?: string
@@ -67,6 +70,8 @@ export function Panel({
             {onExpand ? (
               <button
                 onClick={onExpand}
+                aria-label={expandLabel}
+                title={expandLabel}
                 className="flex size-6 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform hover:scale-105"
               >
                 <ArrowUpRight className="size-3" />

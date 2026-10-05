@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import type { ColumnDef } from "@tanstack/react-table"
 import { motion } from "motion/react"
 import {
@@ -24,9 +25,10 @@ import { UnderlineTabs } from "@/components/motion/segmented"
 import { StatusTag } from "@/components/motion/status-tag"
 import { useDataset, useLookups, useMoney, useTenant } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
-import { demoToday, isoDay } from "@/lib/demo-time"
+import { addDays, demoToday, isoDay } from "@/lib/demo-time"
 import { CHART_COLORS } from "@/lib/hue"
 import { SOURCE_HUE, SOURCE_LABEL } from "@/lib/labels"
+import { useUi } from "@/lib/store"
 import type { Reservation } from "@/lib/types"
 
 type Tab = "arrivals" | "departures" | "inHouse" | "walkIn"
@@ -36,6 +38,7 @@ export default function FrontDeskPage() {
   const lookups = useLookups()
   const money = useMoney()
   const tenant = useTenant()
+  const router = useRouter()
   const { t, locale, num, date } = useLocale()
 
   const [tab, setTab] = React.useState<Tab>("arrivals")
@@ -224,7 +227,18 @@ export default function FrontDeskPage() {
           <ShieldCheck />
           {t("frontDesk.idVerified")}
         </Button>
-        <Button size="sm">
+        <Button
+          size="sm"
+          onClick={() => {
+            // A walk-in starts tonight, in the booking wizard.
+            useUi.getState().setBookingDraft({
+              source: "walkIn",
+              from: today,
+              to: isoDay(addDays(demoToday(), 1)),
+            })
+            router.push("/bookings/new")
+          }}
+        >
           <UserPlus />
           {t("frontDesk.walkIn")}
         </Button>

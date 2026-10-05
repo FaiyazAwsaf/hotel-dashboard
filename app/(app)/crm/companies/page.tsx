@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Building2, Plus } from "lucide-react"
+import { Building2 } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { NewCompanyButton } from "@/components/crm/forms"
 import { Avatar } from "@/components/motion/avatar-stack"
 import { DataTable, TableSearch } from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
@@ -114,10 +114,7 @@ export default function CompaniesPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader title={t("crm.companies")} subtitle={t("nav.groups.crm")}>
-        <Button size="sm">
-          <Plus />
-          {t("common.new")}
-        </Button>
+        <NewCompanyButton />
       </PageHeader>
 
       <div className="border-b border-[var(--hairline)] px-5">

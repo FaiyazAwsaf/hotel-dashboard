@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import {
   ChevronLeft,
   ChevronRight,
@@ -145,7 +146,11 @@ export default function RoomRackPage() {
           <SlidersHorizontal />
           {t("common.sort")}
         </Button>
-        <Button size="sm">
+        <Button
+          size="sm"
+          nativeButton={false}
+          render={<Link href="/bookings/new" />}
+        >
           <Plus />
           {t("common.new")}
         </Button>

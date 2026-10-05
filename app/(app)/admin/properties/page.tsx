@@ -2,9 +2,8 @@
 
 import * as React from "react"
 import { motion } from "motion/react"
-import { Building2, Check, Plus } from "lucide-react"
+import { Building2, Check } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { Panel, PageHeader } from "@/components/motion/card-shell"
 import { Sparkline } from "@/components/motion/comb-chart"
 import { StatusTag } from "@/components/motion/status-tag"
@@ -42,12 +41,7 @@ export default function PropertiesPage() {
       <PageHeader
         title={t("admin.properties")}
         subtitle={`${num(tenants.length)} ${t("admin.properties").toLowerCase()}`}
-      >
-        <Button size="sm">
-          <Plus />
-          {t("common.new")}
-        </Button>
-      </PageHeader>
+      />
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
         <div className="grid gap-2.5 lg:grid-cols-3">

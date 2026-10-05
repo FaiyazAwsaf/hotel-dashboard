@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { X } from "lucide-react"
+import { CalendarDays, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -19,11 +19,19 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet"
+import { addMonths, CalendarMonth } from "@/components/motion/calendar-month"
+import { cn } from "@/lib/utils"
+import { demoToday, isoDay, startOfMonth } from "@/lib/demo-time"
 import { useLocale } from "@/lib/i18n/provider"
 
 /**
@@ -347,5 +355,76 @@ export function FormSheetSelect({
         ))}
       </SelectContent>
     </Select>
+  )
+}
+
+/**
+ * A date for a `FormSheetField`, picked from the app's own calendar so it
+ * reads in the interface language. Submits an ISO day (`2026-10-05`).
+ *
+ *   {(field, controls) => (
+ *     <FormSheetDate field={field} controls={controls} min={today} />
+ *   )}
+ */
+export function FormSheetDate({
+  field,
+  controls,
+  defaultValue,
+  min,
+  max,
+}: {
+  field: FormFieldProps
+  controls: FormFieldControls
+  defaultValue?: string
+  /** Earliest selectable ISO day. */
+  min?: string
+  max?: string
+}) {
+  const { t, date } = useLocale()
+  const [value, setValue] = React.useState(defaultValue ?? "")
+  const [open, setOpen] = React.useState(false)
+  const [month, setMonth] = React.useState(() =>
+    startOfMonth(new Date(value || min || isoDay(demoToday())))
+  )
+
+  return (
+    <>
+      <input type="hidden" name={field.name} value={value} />
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger
+          id={field.id}
+          aria-required={field.required || undefined}
+          aria-invalid={field["aria-invalid"]}
+          aria-describedby={field["aria-describedby"]}
+          className={cn(
+            "flex h-7 w-full items-center gap-1.5 rounded-md border border-input bg-input/20 px-2 text-left text-xs/relaxed transition-colors outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 dark:bg-input/30 dark:hover:bg-input/50",
+            !value && "text-muted-foreground"
+          )}
+        >
+          <CalendarDays className="size-3.5 shrink-0 text-muted-foreground" />
+          <span className="nums truncate">
+            {value
+              ? date(value, { day: "numeric", month: "long", year: "numeric" })
+              : t("forms.pickDate")}
+          </span>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-64">
+          <CalendarMonth
+            month={month}
+            range={{ from: value || undefined }}
+            min={min}
+            max={max}
+            groupId={field.id}
+            onPrev={() => setMonth(addMonths(month, -1))}
+            onNext={() => setMonth(addMonths(month, 1))}
+            onSelect={(day) => {
+              setValue(isoDay(day))
+              setOpen(false)
+              controls.clearError()
+            }}
+          />
+        </PopoverContent>
+      </Popover>
+    </>
   )
 }

@@ -6,6 +6,7 @@ import { persist } from "zustand/middleware"
 import { DEFAULT_TENANT_ID } from "@/lib/tenants"
 import * as React from "react"
 
+import type { BookingSource } from "@/lib/types"
 import {
   DEFAULT_REPORT_RANGE,
   resolveRange,
@@ -22,6 +23,13 @@ export const UI_SCALE_PRESETS = [
   { value: 1.15, labelKey: "shell.scaleLarge" },
   { value: 1.3, labelKey: "shell.scaleLarger" },
 ] as const
+
+export type BookingDraft = {
+  source: BookingSource
+  /** Check-in and check-out days, ISO. */
+  from: string
+  to: string
+}
 
 type UiState = {
   tenantId: string
@@ -49,6 +57,10 @@ type UiState = {
   /** A request for Report studio to start from, set by the report library. */
   studioDraft: string | null
   setStudioDraft: (value: string | null) => void
+
+  /** Where the booking wizard starts, set by the front desk's Walk-in. */
+  bookingDraft: BookingDraft | null
+  setBookingDraft: (value: BookingDraft | null) => void
 
   /** Conversations the demo user has manually flipped off autopilot */
   autopilotOverrides: Record<string, boolean>
@@ -87,6 +99,9 @@ export const useUi = create<UiState>()(
 
       studioDraft: null,
       setStudioDraft: (studioDraft) => set({ studioDraft }),
+
+      bookingDraft: null,
+      setBookingDraft: (bookingDraft) => set({ bookingDraft }),
 
       autopilotOverrides: {},
       setAutopilot: (conversationId, value) =>

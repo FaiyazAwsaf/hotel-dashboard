@@ -10,6 +10,7 @@ import { ScrollFade } from "@/components/motion/scroll-fade"
 import { SegmentedPills } from "@/components/motion/segmented"
 import { StatusTag } from "@/components/motion/status-tag"
 import { useDataset, useLookups, useMoney } from "@/lib/data"
+import { demoNow } from "@/lib/demo-time"
 import { useLocale } from "@/lib/i18n/provider"
 import type { TagHue } from "@/lib/types"
 
@@ -37,7 +38,15 @@ export default function ActivityPage() {
   const entries = React.useMemo<Entry[]>(() => {
     const items: Entry[] = []
 
-    for (const reservation of data.reservations.slice(-24)) {
+    // The most recently made bookings, including any made this session.
+    // Generated bookings can carry future creation dates; those haven't
+    // happened yet.
+    const now = new Date(demoNow()).toISOString()
+    const recent = data.reservations
+      .filter((reservation) => reservation.createdAt <= now)
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+      .slice(0, 24)
+    for (const reservation of recent) {
       const guest = lookups.guest.get(reservation.guestId)
       items.push({
         id: `res-${reservation.id}`,

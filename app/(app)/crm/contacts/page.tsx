@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Mail, Phone, Plus, Users } from "lucide-react"
+import { Mail, Phone, Users } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { NewContactButton } from "@/components/crm/forms"
 import { Avatar } from "@/components/motion/avatar-stack"
 import { DataTable, TableSearch } from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
@@ -94,10 +94,7 @@ export default function ContactsPage() {
         title={t("crm.contacts")}
         subtitle={`${num(data.contacts.length)} ${t("crm.contacts").toLowerCase()}`}
       >
-        <Button size="sm">
-          <Plus />
-          {t("common.new")}
-        </Button>
+        <NewContactButton />
       </PageHeader>
       <div className="flex min-h-0 flex-1 flex-col px-5 pb-5">
         <DataTable

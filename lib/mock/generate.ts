@@ -56,6 +56,7 @@ import {
 import { buildConversations } from "./conversations"
 import { buildCalls } from "./calls"
 import { buildInsights } from "./insights"
+import { buildCampaigns, buildIntegrations, buildUsers } from "./catalog"
 import {
   buildCameras,
   buildLuggage,
@@ -95,7 +96,7 @@ const SOURCES: [BookingSource, number][] = [
   ["aiAgent", 13],
 ]
 
-const SEGMENTS: CompanySegment[] = [
+export const SEGMENTS: CompanySegment[] = [
   "enterprise",
   "midMarket",
   "smb",
@@ -106,7 +107,7 @@ const SEGMENTS: CompanySegment[] = [
   "wedding",
 ]
 
-const SEGMENT_HUES: Record<CompanySegment, TagHue> = {
+export const SEGMENT_HUES: Record<CompanySegment, TagHue> = {
   enterprise: "blue",
   midMarket: "green",
   smb: "amber",
@@ -157,7 +158,7 @@ function guestName(rng: Rng, tenant: Tenant): Bilingual {
   return rng.pick(NAME_POOLS.INTL_NAMES)
 }
 
-function slugEmail(name: string, domain: string) {
+export function slugEmail(name: string, domain: string) {
   return `${name
     .toLowerCase()
     .normalize("NFD")
@@ -1104,5 +1105,9 @@ export function generateDataset(tenant: Tenant): Dataset {
     kpis: buildKpis(rng, series),
     insights: buildInsights(rng, tenant, series),
     agentRuns: buildAgentRuns(rng),
+    // Not drawn from the RNG, so their place here doesn't matter.
+    campaigns: buildCampaigns(),
+    users: buildUsers(staff),
+    integrations: buildIntegrations(),
   }
 }

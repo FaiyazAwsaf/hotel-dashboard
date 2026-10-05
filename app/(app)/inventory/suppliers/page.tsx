@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Plus, Star, Truck } from "lucide-react"
+import { Star, Truck } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { NewSupplierButton } from "@/components/inventory/forms"
 import { DataTable, TableSearch } from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
 import { StatusTag } from "@/components/motion/status-tag"
@@ -14,7 +14,7 @@ import type { Supplier } from "@/lib/types"
 
 export default function SuppliersPage() {
   const data = useDataset()
-  const { t, locale, num, dec } = useLocale()
+  const { t, tk, locale, num, dec } = useLocale()
   const [query, setQuery] = React.useState("")
 
   const columns = React.useMemo<ColumnDef<Supplier, unknown>[]>(
@@ -54,7 +54,11 @@ export default function SuppliersPage() {
         accessorKey: "leadTimeDays",
         header: t("inventory.leadTime"),
         meta: { align: "right" },
-        cell: ({ row }) => `${num(row.original.leadTimeDays)}d`,
+        cell: ({ row }) =>
+          tk(
+            `inventory.days.${row.original.leadTimeDays === 1 ? "one" : "other"}`,
+            { count: num(row.original.leadTimeDays) }
+          ),
       },
       {
         accessorKey: "openOrders",
@@ -66,15 +70,19 @@ export default function SuppliersPage() {
         accessorKey: "rating",
         header: t("reports.guestSatisfaction"),
         meta: { align: "right" },
-        cell: ({ row }) => (
-          <span className="flex items-center justify-end gap-1">
-            <Star className="size-2.5 fill-[var(--warning)] text-[var(--warning)]" />
-            {dec(row.original.rating, 1)}
-          </span>
-        ),
+        // New suppliers have no rating until their first delivery.
+        cell: ({ row }) =>
+          row.original.rating > 0 ? (
+            <span className="flex items-center justify-end gap-1">
+              <Star className="size-2.5 fill-[var(--warning)] text-[var(--warning)]" />
+              {dec(row.original.rating, 1)}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
       },
     ],
-    [locale, t, num, dec]
+    [locale, t, tk, num, dec]
   )
 
   return (
@@ -83,10 +91,7 @@ export default function SuppliersPage() {
         title={t("inventory.suppliers")}
         subtitle={t("nav.groups.resources")}
       >
-        <Button size="sm">
-          <Plus />
-          {t("common.new")}
-        </Button>
+        <NewSupplierButton />
       </PageHeader>
       <div className="flex min-h-0 flex-1 flex-col px-5 pb-5">
         <DataTable

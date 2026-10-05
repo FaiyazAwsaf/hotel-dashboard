@@ -1,10 +1,13 @@
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Boxes, Plus, TriangleAlert } from "lucide-react"
+import { Boxes, ShoppingCart, TriangleAlert } from "lucide-react"
+import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { NewStockItemButton } from "@/components/inventory/forms"
 import { DataTable, TableSearch } from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
 import { KpiStrip } from "@/components/motion/kpi-strip"
@@ -13,13 +16,16 @@ import { StatusTag } from "@/components/motion/status-tag"
 import { useDataset, useLookups, useMoney } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
 import { CHART_COLORS } from "@/lib/hue"
-import type { InventoryItem } from "@/lib/types"
+import { needsReorder, useInventoryActions } from "@/lib/inventory-actions"
+import type { InventoryItem, PurchaseOrder } from "@/lib/types"
 
 export default function StockPage() {
   const data = useDataset()
   const lookups = useLookups()
   const money = useMoney()
-  const { t, locale, num } = useLocale()
+  const actions = useInventoryActions()
+  const router = useRouter()
+  const { t, tk, locale, num } = useLocale()
   const [query, setQuery] = React.useState("")
   const [filter, setFilter] = React.useState<"all" | "low" | "out">("all")
 
@@ -95,20 +101,25 @@ export default function StockPage() {
         cell: ({ row }) => {
           const state = level(row.original)
           return (
-            <StatusTag
-              hue={
-                state === "out" ? "rose" : state === "low" ? "amber" : "green"
-              }
-              dot
-            >
-              {t(
-                state === "out"
-                  ? "inventory.outOfStock"
-                  : state === "low"
-                    ? "inventory.lowStock"
-                    : "inventory.inStock"
-              )}
-            </StatusTag>
+            <span className="flex items-center gap-1">
+              <StatusTag
+                hue={
+                  state === "out" ? "rose" : state === "low" ? "amber" : "green"
+                }
+                dot
+              >
+                {t(
+                  state === "out"
+                    ? "inventory.outOfStock"
+                    : state === "low"
+                      ? "inventory.lowStock"
+                      : "inventory.inStock"
+                )}
+              </StatusTag>
+              {row.original.reorderedAt ? (
+                <StatusTag hue="blue">{t("inventory.onOrder")}</StatusTag>
+              ) : null}
+            </span>
           )
         },
       },
@@ -176,20 +187,56 @@ export default function StockPage() {
     ]
   }, [data.inventory, t, money.symbol])
 
+  const toReorder = data.inventory.filter(needsReorder)
+
+  /** Raises the orders and says so, with a way to see them. */
+  const reorder = (items: readonly InventoryItem[]) => {
+    const orders: PurchaseOrder[] = actions.reorder(items)
+    if (orders.length === 0) return
+    const lines = orders.reduce((sum, order) => sum + order.lines, 0)
+    toast.success(
+      tk(`inventory.reordered.${orders.length === 1 ? "one" : "other"}`, {
+        count: num(orders.length),
+      }),
+      {
+        description: tk(
+          `inventory.reorderedItems.${lines === 1 ? "one" : "other"}`,
+          { count: num(lines) }
+        ),
+        action: {
+          label: t("inventory.viewOrders"),
+          onClick: () => router.push("/inventory/purchase-orders"),
+        },
+      }
+    )
+  }
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <PageHeader
         title={t("inventory.stock")}
         subtitle={t("nav.groups.resources")}
       >
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={toReorder.length === 0}
+          title={
+            toReorder.length === 0
+              ? t("inventory.nothingToReorder")
+              : t("inventory.reorderHint")
+          }
+          onClick={() => reorder(toReorder)}
+        >
           <TriangleAlert />
-          {t("inventory.reorderPoint")}
+          {t("inventory.reorderLow")}
+          {toReorder.length > 0 ? (
+            <span className="nums rounded-full bg-muted px-1.5 text-[0.625rem] text-muted-foreground">
+              {num(toReorder.length)}
+            </span>
+          ) : null}
         </Button>
-        <Button size="sm">
-          <Plus />
-          {t("common.new")}
-        </Button>
+        <NewStockItemButton />
       </PageHeader>
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-5">
         <KpiStrip cells={kpis} />
@@ -201,6 +248,26 @@ export default function StockPage() {
           rowId={(row) => row.id}
           selectable
           exportName="stock"
+          bulkActions={(selected, clearSelection) => {
+            const orderable = selected.filter((item) => !item.reorderedAt)
+            return (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={orderable.length === 0}
+                title={
+                  orderable.length === 0 ? t("inventory.allOnOrder") : undefined
+                }
+                onClick={() => {
+                  reorder(orderable)
+                  clearSelection()
+                }}
+              >
+                <ShoppingCart />
+                {t("inventory.orderSelected")}
+              </Button>
+            )
+          }}
           emptyIcon={<Boxes />}
           className="min-h-0 flex-1"
           toolbar={

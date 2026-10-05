@@ -3,9 +3,8 @@
 import * as React from "react"
 import { motion } from "motion/react"
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts"
-import { Layers, Plus } from "lucide-react"
+import { Layers } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
 import { MiniTooltip } from "@/components/ai/tool-call-card"
 import { Panel, PageHeader } from "@/components/motion/card-shell"
 import { Sparkline } from "@/components/motion/comb-chart"
@@ -54,12 +53,8 @@ export default function SegmentsPage() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <PageHeader title={t("nav.segments")} subtitle={t("nav.groups.crm")}>
-        <Button size="sm">
-          <Plus />
-          {t("common.new")}
-        </Button>
-      </PageHeader>
+      {/* Segments are a fixed list in the data model, so there is no "New". */}
+      <PageHeader title={t("nav.segments")} subtitle={t("nav.groups.crm")} />
       <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto px-5 pb-5 lg:grid-cols-[320px_1fr]">
         <Panel title={t("finance.bySegment")}>
           <div className="h-[220px]">

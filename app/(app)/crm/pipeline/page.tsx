@@ -17,13 +17,13 @@ import {
   Building2,
   CalendarDays,
   KanbanSquare,
-  Plus,
   Sparkles,
   X,
 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { NewDealButton } from "@/components/crm/forms"
 import { Avatar } from "@/components/motion/avatar-stack"
 import { PageHeader } from "@/components/motion/card-shell"
 import { CompoundFilter } from "@/components/motion/segmented"
@@ -102,10 +102,7 @@ export default function PipelinePage() {
         <CompoundFilter label={t("common.filter")}>
           {t("crm.allOwners")}
         </CompoundFilter>
-        <Button size="sm">
-          <Plus />
-          {t("crm.deals")}
-        </Button>
+        <NewDealButton />
       </PageHeader>
 
       <DndContext

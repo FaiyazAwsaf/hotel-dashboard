@@ -2,34 +2,38 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Plus, Users } from "lucide-react"
+import { Users } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { InviteUserButton } from "@/components/admin/forms"
 import { Avatar } from "@/components/motion/avatar-stack"
 import { DataTable, TableSearch } from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
 import { StatusTag } from "@/components/motion/status-tag"
 import { useDataset } from "@/lib/data"
 import { useLocale } from "@/lib/i18n/provider"
-import type { Bilingual, StaffMember, TagHue } from "@/lib/types"
+import { ROLE_BY_ID } from "@/lib/roles"
+import type { AppUser, TagHue, UserStatus } from "@/lib/types"
 
-const ROLES: { name: Bilingual; hue: TagHue }[] = [
-  { name: { en: "Owner", bn: "স্বত্বাধিকারী" }, hue: "purple" },
-  { name: { en: "General Manager", bn: "মহাব্যবস্থাপক" }, hue: "blue" },
-  { name: { en: "Front Office", bn: "ফ্রন্ট অফিস" }, hue: "teal" },
-  { name: { en: "Housekeeping", bn: "হাউসকিপিং" }, hue: "amber" },
-  { name: { en: "Finance", bn: "অর্থ" }, hue: "green" },
-  { name: { en: "Read-only", bn: "শুধু পাঠ" }, hue: "slate" },
-]
+const STATUS_HUE: Record<UserStatus, TagHue> = {
+  enabled: "green",
+  disabled: "slate",
+  invited: "amber",
+}
+
+const STATUS_KEY = {
+  enabled: "common.enabled",
+  disabled: "common.disabled",
+  invited: "admin.invited",
+} as const
 
 export default function UsersPage() {
   const data = useDataset()
   const { t, locale, num, relative } = useLocale()
   const [query, setQuery] = React.useState("")
 
-  const users = React.useMemo(() => data.staff.slice(0, 22), [data.staff])
+  const users = data.users
 
-  const columns = React.useMemo<ColumnDef<StaffMember, unknown>[]>(
+  const columns = React.useMemo<ColumnDef<AppUser, unknown>[]>(
     () => [
       {
         id: "name",
@@ -55,66 +59,56 @@ export default function UsersPage() {
       },
       {
         id: "role",
-        accessorFn: (_row, index) => ROLES[index % ROLES.length].name[locale],
+        accessorFn: (row) => ROLE_BY_ID.get(row.role)?.name[locale] ?? "",
         header: t("staff.role"),
         cell: ({ row }) => {
-          const role = ROLES[users.indexOf(row.original) % ROLES.length]
-          return <StatusTag hue={role.hue}>{role.name[locale]}</StatusTag>
+          const role = ROLE_BY_ID.get(row.original.role)
+          return role ? (
+            <StatusTag hue={role.hue}>{role.name[locale]}</StatusTag>
+          ) : null
         },
       },
       {
-        accessorKey: "department",
+        id: "department",
+        accessorFn: (row) =>
+          row.department
+            ? t(`staff.departments.${row.department}` as never)
+            : "",
         header: t("staff.department"),
-        meta: {
-          exportValue: (row) =>
-            t(`staff.departments.${row.department}` as never),
-        },
         cell: ({ row }) => (
           <span className="text-muted-foreground">
-            {t(`staff.departments.${row.original.department}` as never)}
+            {row.original.department
+              ? t(`staff.departments.${row.original.department}` as never)
+              : "—"}
           </span>
         ),
       },
       {
         id: "lastSeen",
-        accessorFn: (row) => row.joinedAt,
+        accessorFn: (row) => row.lastSeenAt ?? "",
         header: t("admin.lastSeen"),
         meta: { align: "right", export: false },
-        cell: ({ row }) => {
-          const index = users.indexOf(row.original)
-          return (
-            <span className="text-muted-foreground">
-              {relative(
-                new Date(Date.now() - index * 3_600_000 * 7).toISOString()
-              )}
-            </span>
-          )
-        },
+        cell: ({ row }) => (
+          <span className="text-muted-foreground">
+            {row.original.lastSeenAt ? relative(row.original.lastSeenAt) : "—"}
+          </span>
+        ),
       },
       {
-        id: "status",
+        accessorKey: "status",
         header: t("common.status"),
         meta: {
           align: "right",
-          exportValue: (row) =>
-            t(
-              users.indexOf(row) % 9 === 4
-                ? "common.disabled"
-                : "common.enabled"
-            ),
+          exportValue: (row) => t(STATUS_KEY[row.status]),
         },
-        enableSorting: false,
-        cell: ({ row }) => {
-          const index = users.indexOf(row.original)
-          return (
-            <StatusTag hue={index % 9 === 4 ? "slate" : "green"} dot>
-              {t(index % 9 === 4 ? "common.disabled" : "common.enabled")}
-            </StatusTag>
-          )
-        },
+        cell: ({ row }) => (
+          <StatusTag hue={STATUS_HUE[row.original.status]} dot>
+            {t(STATUS_KEY[row.original.status])}
+          </StatusTag>
+        ),
       },
     ],
-    [locale, t, relative, users]
+    [locale, t, relative]
   )
 
   return (
@@ -123,10 +117,7 @@ export default function UsersPage() {
         title={t("admin.users")}
         subtitle={`${num(users.length)} ${t("admin.users").toLowerCase()}`}
       >
-        <Button size="sm">
-          <Plus />
-          {t("admin.invite")}
-        </Button>
+        <InviteUserButton />
       </PageHeader>
       <div className="flex min-h-0 flex-1 flex-col px-5 pb-5">
         <DataTable

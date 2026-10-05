@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { AnimatePresence, motion } from "motion/react"
 import {
   ArrowLeft,
@@ -8,13 +9,17 @@ import {
   BedDouble,
   Check,
   CreditCard,
+  Minus,
   Plus,
+  Search,
   Sparkles,
   User,
+  Users,
 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { NewGuestSheet } from "@/components/bookings/new-guest"
 import { Avatar } from "@/components/motion/avatar-stack"
 import { Panel, PageHeader } from "@/components/motion/card-shell"
 import { ScrollFade } from "@/components/motion/scroll-fade"
@@ -25,10 +30,19 @@ import {
   type DateRange,
 } from "@/components/motion/trip-range-picker"
 import { cn } from "@/lib/utils"
-import { useDataset, useMoney, useTenant } from "@/lib/data"
+import { freeRoomsByType, useBookingActions } from "@/lib/booking-actions"
+import { useDataset, useLookups, useMoney, useTenant } from "@/lib/data"
+import { ratePercent } from "@/lib/finance"
 import { useLocale } from "@/lib/i18n/provider"
 import { HUE_VAR } from "@/lib/hue"
-import type { Bilingual, RoomTypeId } from "@/lib/types"
+import { useUi } from "@/lib/store"
+import type {
+  Bilingual,
+  BookingSource,
+  Reservation,
+  Room,
+  RoomTypeId,
+} from "@/lib/types"
 
 const STEPS = [
   "dates",
@@ -65,23 +79,81 @@ const EXTRAS: { id: string; label: Bilingual; usd: number }[] = [
   },
 ]
 
+const MAX_ADULTS = 6
+const MAX_CHILDREN = 4
+
 export default function NewBookingPage() {
   const data = useDataset()
+  const lookups = useLookups()
   const tenant = useTenant()
   const money = useMoney()
-  const { t, locale, num, date, pct } = useLocale()
+  const actions = useBookingActions()
+  const { t, tk, locale, num, date, pct, digits } = useLocale()
+
+  // The front desk's Walk-in hands over today's dates and the walk-in source.
+  const [draft] = React.useState(() => useUi.getState().bookingDraft)
+  React.useEffect(() => {
+    useUi.getState().setBookingDraft(null)
+  }, [])
 
   const [step, setStep] = React.useState<Step>("dates")
-  const [range, setRange] = React.useState<DateRange>({})
+  const [range, setRange] = React.useState<DateRange>(() =>
+    draft ? { from: draft.from, to: draft.to } : {}
+  )
+  const [source, setSource] = React.useState<BookingSource>(
+    () => draft?.source ?? "direct"
+  )
+  const [adults, setAdults] = React.useState(2)
+  const [children, setChildren] = React.useState(0)
   const [guestId, setGuestId] = React.useState<string>()
-  const [roomTypeId, setRoomTypeId] = React.useState<RoomTypeId>()
+  const [guestQuery, setGuestQuery] = React.useState("")
+  const [addingGuest, setAddingGuest] = React.useState(false)
+  const [chosenType, setChosenType] = React.useState<RoomTypeId>()
   const [extras, setExtras] = React.useState<string[]>([])
   const [method, setMethod] = React.useState("card")
+  /** The booking once confirmed; the wizard is then read-only. */
+  const [booked, setBooked] = React.useState<Reservation | null>(null)
 
   const stepIndex = STEPS.indexOf(step)
   const nights = nightsBetween(range)
+
+  // Rooms free on every night of the stay, by type.
+  const freeRooms = React.useMemo(
+    () =>
+      range.from && range.to
+        ? freeRoomsByType(data.rooms, data.reservations, range.from, range.to)
+        : new Map<RoomTypeId, Room[]>(),
+    [data.rooms, data.reservations, range.from, range.to]
+  )
+  const fits = (id: RoomTypeId) => {
+    const type = data.roomTypes.find((entry) => entry.id === id)
+    return !!type && adults <= type.capacity && !!freeRooms.get(id)?.length
+  }
+  // A choice that new dates or a bigger party rule out falls away by itself.
+  const roomTypeId =
+    booked?.roomTypeId ??
+    (chosenType && fits(chosenType) ? chosenType : undefined)
   const roomType = data.roomTypes.find((type) => type.id === roomTypeId)
+  const room = booked
+    ? lookups.room.get(booked.roomId)
+    : roomTypeId
+      ? freeRooms.get(roomTypeId)?.[0]
+      : undefined
   const guest = data.guests.find((g) => g.id === guestId)
+
+  const guests = React.useMemo(() => {
+    const query = guestQuery.trim().toLowerCase()
+    const matches = query
+      ? data.guests.filter(
+          (g) =>
+            g.name.en.toLowerCase().includes(query) ||
+            g.name.bn.includes(query) ||
+            g.phone.replace(/\s/g, "").includes(query.replace(/\s/g, "")) ||
+            g.email.toLowerCase().includes(query)
+        )
+      : data.guests
+    return matches.slice(0, 8)
+  }, [data.guests, guestQuery])
 
   const roomCharge = (roomType?.baseRate ?? 0) * nights
   const extrasTotal = extras.reduce((sum, id) => {
@@ -91,9 +163,15 @@ export default function NewBookingPage() {
       (extra ? (tenant.currency === "USD" ? extra.usd : extra.usd * 118) : 0)
     )
   }, 0)
-  const serviceCharge = Math.round((roomCharge + extrasTotal) * 0.1)
-  const vat = Math.round((roomCharge + extrasTotal + serviceCharge) * 0.15)
-  const grandTotal = roomCharge + extrasTotal + serviceCharge + vat
+  // The property's own service charge and sales tax (VAT or GST), the tax
+  // charged on the room and extras plus the service charge.
+  const serviceCharge = Math.round(
+    (roomCharge + extrasTotal) * tenant.tax.serviceCharge
+  )
+  const tax = Math.round(
+    (roomCharge + extrasTotal + serviceCharge) * tenant.tax.rate
+  )
+  const grandTotal = roomCharge + extrasTotal + serviceCharge + tax
 
   const canAdvance = {
     dates: nights > 0,
@@ -104,14 +182,60 @@ export default function NewBookingPage() {
     confirm: true,
   }[step]
 
-  const availableByType = React.useMemo(() => {
-    const counts = new Map<RoomTypeId, number>()
-    for (const room of data.rooms) {
-      if (room.housekeeping === "outOfService") continue
-      counts.set(room.typeId, (counts.get(room.typeId) ?? 0) + 1)
+  const party = [
+    tk(`finance.invoice.adults.${adults === 1 ? "one" : "other"}`, {
+      count: num(adults),
+    }),
+    children > 0
+      ? tk(`finance.invoice.children.${children === 1 ? "one" : "other"}`, {
+          count: num(children),
+        })
+      : null,
+  ]
+    .filter(Boolean)
+    .join(", ")
+
+  const confirm = () => {
+    if (!guestId || !roomTypeId || !roomType || !range.from || !range.to) return
+    const reservation = actions.createReservation({
+      guestId,
+      roomTypeId,
+      from: range.from,
+      to: range.to,
+      nights,
+      adults,
+      children,
+      rate: roomType.baseRate,
+      total: grandTotal,
+      source,
+    })
+    if (!reservation) {
+      toast.error(t("bookings.wizard.noRoomLeft"))
+      setStep("room")
+      return
     }
-    return counts
-  }, [data.rooms])
+    setBooked(reservation)
+    setStep("confirm")
+    toast.success(t("bookings.wizard.created", { code: reservation.code }), {
+      description: `${t("bookings.wizard.roomNumber", {
+        number: digits(lookups.room.get(reservation.roomId)?.number ?? ""),
+      })} · ${money.format(reservation.total)}`,
+    })
+  }
+
+  const startOver = () => {
+    setBooked(null)
+    setStep("dates")
+    setRange({})
+    setSource("direct")
+    setAdults(2)
+    setChildren(0)
+    setGuestId(undefined)
+    setGuestQuery("")
+    setChosenType(undefined)
+    setExtras([])
+    setMethod("card")
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -128,7 +252,8 @@ export default function NewBookingPage() {
           return (
             <React.Fragment key={id}>
               <button
-                onClick={() => index <= stepIndex && setStep(id)}
+                onClick={() => !booked && index <= stepIndex && setStep(id)}
+                disabled={!!booked && id !== "confirm"}
                 className={cn(
                   "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6875rem] transition-colors",
                   current
@@ -178,7 +303,14 @@ export default function NewBookingPage() {
               >
                 {step === "dates" ? (
                   <div className="flex flex-col items-start gap-4 sm:flex-row">
-                    <TripRangePicker value={range} onChange={setRange} />
+                    <TripRangePicker
+                      value={range}
+                      onChange={(next) => {
+                        // A walk-in is today; other dates make it a booking.
+                        if (next.from !== range.from) setSource("direct")
+                        setRange(next)
+                      }}
+                    />
                     <div className="flex-1 rounded-xl bg-surface p-4">
                       <div className="micro">{t("dashboard.occupancy")}</div>
                       <p className="mt-2 text-[0.6875rem] leading-relaxed text-muted-foreground">
@@ -198,15 +330,66 @@ export default function NewBookingPage() {
                           />
                         </div>
                       ) : null}
+                      <div className="micro mt-4">{t("common.guests")}</div>
+                      <div className="mt-2 flex flex-col gap-1.5">
+                        <Stepper
+                          label={t("common.adults")}
+                          value={adults}
+                          min={1}
+                          max={MAX_ADULTS}
+                          onChange={setAdults}
+                        />
+                        <Stepper
+                          label={t("common.children")}
+                          value={children}
+                          min={0}
+                          max={MAX_CHILDREN}
+                          onChange={setChildren}
+                        />
+                      </div>
                     </div>
                   </div>
                 ) : null}
 
                 {step === "guest" ? (
                   <div>
-                    <div className="micro pb-2">{t("common.guest")}</div>
+                    <div className="flex items-center gap-2 pb-2">
+                      <span className="micro">{t("common.guest")}</span>
+                      <div className="relative ml-auto">
+                        <Search className="absolute top-1/2 left-2 size-3 -translate-y-1/2 text-muted-foreground" />
+                        <input
+                          value={guestQuery}
+                          onChange={(event) =>
+                            setGuestQuery(event.target.value)
+                          }
+                          placeholder={t("bookings.wizard.searchGuests")}
+                          aria-label={t("bookings.wizard.searchGuests")}
+                          className="h-7 w-[240px] rounded-full border border-border bg-card pr-2.5 pl-7 text-[0.6875rem] outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
+                        />
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setAddingGuest(true)}
+                      >
+                        <Plus />
+                        {t("bookings.addGuest")}
+                      </Button>
+                    </div>
+                    {guest && !guests.includes(guest) ? (
+                      <p className="pb-2 text-[0.625rem] text-muted-foreground">
+                        {t("bookings.wizard.selectedGuest", {
+                          name: guest.name[locale],
+                        })}
+                      </p>
+                    ) : null}
+                    {guests.length === 0 ? (
+                      <p className="rounded-lg border border-dashed border-border p-4 text-center text-[0.6875rem] text-muted-foreground">
+                        {t("bookings.wizard.noGuestMatch")}
+                      </p>
+                    ) : null}
                     <div className="grid gap-1.5 sm:grid-cols-2">
-                      {data.guests.slice(0, 8).map((candidate) => (
+                      {guests.map((candidate) => (
                         <button
                           key={candidate.id}
                           onClick={() => setGuestId(candidate.id)}
@@ -240,51 +423,67 @@ export default function NewBookingPage() {
                         </button>
                       ))}
                     </div>
-                    <Button variant="outline" size="sm" className="mt-3">
-                      <Plus />
-                      {t("common.add")}
-                    </Button>
                   </div>
                 ) : null}
 
                 {step === "room" ? (
                   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {data.roomTypes.map((type) => (
-                      <button
-                        key={type.id}
-                        onClick={() => setRoomTypeId(type.id)}
-                        className={cn(
-                          "flex flex-col gap-2 rounded-xl bg-surface p-3 text-left ring-1 transition-all",
-                          type.id === roomTypeId
-                            ? "ring-2 ring-primary"
-                            : "ring-foreground/[0.06] hover:bg-muted"
-                        )}
-                      >
-                        <span
-                          className="h-14 rounded-lg"
-                          style={{
-                            background: `linear-gradient(135deg, color-mix(in oklch, ${HUE_VAR[type.hue]} 26%, transparent), transparent)`,
-                          }}
-                        />
-                        <span className="flex items-center gap-1.5">
-                          <BedDouble className="size-3 text-muted-foreground" />
-                          <span className="text-[0.6875rem] font-medium">
-                            {t(`rooms.types.${type.id}` as never)}
+                    {data.roomTypes.map((type) => {
+                      const free = freeRooms.get(type.id)?.length ?? 0
+                      const tooSmall = adults > type.capacity
+                      return (
+                        <button
+                          key={type.id}
+                          onClick={() => setChosenType(type.id)}
+                          disabled={free === 0 || tooSmall}
+                          className={cn(
+                            "flex flex-col gap-2 rounded-xl bg-surface p-3 text-left ring-1 transition-all disabled:cursor-not-allowed disabled:opacity-50",
+                            type.id === roomTypeId
+                              ? "ring-2 ring-primary"
+                              : "ring-foreground/[0.06] enabled:hover:bg-muted"
+                          )}
+                        >
+                          <span
+                            className="h-14 rounded-lg"
+                            style={{
+                              background: `linear-gradient(135deg, color-mix(in oklch, ${HUE_VAR[type.hue]} 26%, transparent), transparent)`,
+                            }}
+                          />
+                          <span className="flex items-center gap-1.5">
+                            <BedDouble className="size-3 text-muted-foreground" />
+                            <span className="text-[0.6875rem] font-medium">
+                              {t(`rooms.types.${type.id}` as never)}
+                            </span>
+                            <StatusTag
+                              hue={free === 0 ? "rose" : type.hue}
+                              className="ml-auto"
+                            >
+                              {free === 0
+                                ? t("bookings.wizard.soldOut")
+                                : t("bookings.wizard.freeRooms", {
+                                    count: num(free),
+                                  })}
+                            </StatusTag>
                           </span>
-                          <StatusTag hue={type.hue} className="ml-auto">
-                            {num(availableByType.get(type.id) ?? 0)}
-                          </StatusTag>
-                        </span>
-                        <span className="flex items-baseline gap-1">
-                          <span className="nums text-sm font-medium">
-                            {money.format(type.baseRate)}
+                          <span className="flex items-baseline gap-1">
+                            <span className="nums text-sm font-medium">
+                              {money.format(type.baseRate)}
+                            </span>
+                            <span className="text-[0.625rem] text-muted-foreground">
+                              /{t("common.night")}
+                            </span>
+                            <span className="ml-auto flex items-center gap-1 text-[0.625rem] text-muted-foreground">
+                              <Users className="size-2.5" />
+                              {tooSmall
+                                ? t("bookings.wizard.upToAdults", {
+                                    count: num(type.capacity),
+                                  })
+                                : num(type.capacity)}
+                            </span>
                           </span>
-                          <span className="text-[0.625rem] text-muted-foreground">
-                            /{t("common.night")}
-                          </span>
-                        </span>
-                      </button>
-                    ))}
+                        </button>
+                      )
+                    })}
                   </div>
                 ) : null}
 
@@ -382,6 +581,15 @@ export default function NewBookingPage() {
                       <p className="text-sm font-medium">
                         {t("bookings.bookingConfirmed")}
                       </p>
+                      {booked ? (
+                        <p className="nums mt-1 text-xs font-medium">
+                          {booked.code} ·{" "}
+                          {t("bookings.wizard.roomNumber", {
+                            number: digits(room?.number ?? ""),
+                          })}{" "}
+                          · {t(`rooms.types.${booked.roomTypeId}` as never)}
+                        </p>
+                      ) : null}
                       <p className="mt-1 text-[0.6875rem] text-muted-foreground">
                         {t("bookings.confirmationSent", {
                           channel: "WhatsApp",
@@ -395,6 +603,28 @@ export default function NewBookingPage() {
                           ? "এআই এজেন্ট নিশ্চিতকরণ ও পেমেন্ট লিংক পাঠিয়ে দিয়েছে"
                           : "The AI agent has sent the confirmation and payment link"}
                       </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        nativeButton={false}
+                        render={<Link href="/bookings" />}
+                      >
+                        {t("bookings.wizard.viewBookings")}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        nativeButton={false}
+                        render={<Link href="/rooms/rack" />}
+                      >
+                        {t("rooms.roomRack")}
+                      </Button>
+                      <Button size="sm" onClick={startOver}>
+                        <Plus />
+                        {t("bookings.newBooking")}
+                      </Button>
                     </div>
                   </div>
                 ) : null}
@@ -428,8 +658,17 @@ export default function NewBookingPage() {
             {roomType ? (
               <div className="flex items-center gap-2 rounded-lg bg-surface p-2.5">
                 <BedDouble className="size-3.5 text-muted-foreground" />
-                <span className="text-[0.6875rem] font-medium">
+                <span className="min-w-0 truncate text-[0.6875rem] font-medium">
                   {t(`rooms.types.${roomType.id}` as never)}
+                  {room ? (
+                    <span className="nums font-normal text-muted-foreground">
+                      {" "}
+                      ·{" "}
+                      {t("bookings.wizard.roomNumber", {
+                        number: digits(room.number),
+                      })}
+                    </span>
+                  ) : null}
                 </span>
                 <span className="nums ml-auto text-[0.6875rem]">
                   {money.format(roomType.baseRate)}
@@ -439,16 +678,30 @@ export default function NewBookingPage() {
               <Placeholder icon={<BedDouble />} label={t("common.room")} />
             )}
 
+            <div className="flex items-center gap-2 rounded-lg bg-surface p-2.5 text-[0.6875rem]">
+              <Users className="size-3.5 text-muted-foreground" />
+              <span className="nums">{party}</span>
+              {source === "walkIn" ? (
+                <StatusTag hue="amber" className="ml-auto">
+                  {t("dashboard.walkIn")}
+                </StatusTag>
+              ) : null}
+            </div>
+
             {range.from ? (
               <div className="rounded-lg bg-surface p-2.5">
                 <div className="flex items-center justify-between">
                   <span className="micro">{t("bookings.checkInDate")}</span>
-                  <span className="nums text-[0.6875rem]">{date(range.from)}</span>
+                  <span className="nums text-[0.6875rem]">
+                    {date(range.from)}
+                  </span>
                 </div>
                 {range.to ? (
                   <div className="mt-1.5 flex items-center justify-between">
                     <span className="micro">{t("bookings.checkOutDate")}</span>
-                    <span className="nums text-[0.6875rem]">{date(range.to)}</span>
+                    <span className="nums text-[0.6875rem]">
+                      {date(range.to)}
+                    </span>
                   </div>
                 ) : null}
               </div>
@@ -466,11 +719,19 @@ export default function NewBookingPage() {
                 />
               ) : null}
               <Line
-                label={t("bookings.serviceCharge")}
+                label={t("finance.invoice.serviceCharge", {
+                  rate: pct(ratePercent(tenant.tax.serviceCharge), 0),
+                })}
                 value={money.format(serviceCharge)}
                 muted
               />
-              <Line label={t("bookings.vat")} value={money.format(vat)} muted />
+              <Line
+                label={tk(`finance.invoice.${tenant.tax.name}`, {
+                  rate: pct(ratePercent(tenant.tax.rate), 0),
+                })}
+                value={money.format(tax)}
+                muted
+              />
             </div>
 
             <div className="mt-1 flex items-baseline justify-between border-t border-[var(--hairline)] pt-3">
@@ -484,7 +745,7 @@ export default function NewBookingPage() {
               <Button
                 variant="outline"
                 size="sm"
-                disabled={stepIndex === 0}
+                disabled={stepIndex === 0 || !!booked}
                 onClick={() => setStep(STEPS[stepIndex - 1])}
               >
                 <ArrowLeft />
@@ -494,14 +755,9 @@ export default function NewBookingPage() {
                 size="sm"
                 className="flex-1 justify-center"
                 disabled={!canAdvance || step === "confirm"}
-                onClick={() => {
-                  if (stepIndex === STEPS.length - 2) {
-                    toast.success(t("bookings.bookingConfirmed"), {
-                      description: money.format(grandTotal),
-                    })
-                  }
-                  setStep(STEPS[stepIndex + 1])
-                }}
+                onClick={() =>
+                  step === "payment" ? confirm() : setStep(STEPS[stepIndex + 1])
+                }
               >
                 {step === "payment" ? t("common.confirm") : t("common.next")}
                 <ArrowRight />
@@ -510,6 +766,64 @@ export default function NewBookingPage() {
           </div>
         </Panel>
       </div>
+
+      <NewGuestSheet
+        open={addingGuest}
+        onOpenChange={setAddingGuest}
+        onAdded={(added) => {
+          setGuestId(added.id)
+          setGuestQuery("")
+          toast.success(
+            t("bookings.guestForm.added", { name: added.name[locale] })
+          )
+        }}
+      />
+    </div>
+  )
+}
+
+/** A − n + control for the party size. */
+function Stepper({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string
+  value: number
+  min: number
+  max: number
+  onChange: (value: number) => void
+}) {
+  const { t, num } = useLocale()
+  return (
+    <div className="flex items-center gap-2 rounded-lg bg-card px-2.5 py-1.5">
+      <span className="flex-1 text-[0.6875rem]">{label}</span>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        disabled={value <= min}
+        onClick={() => onChange(value - 1)}
+        aria-label={t("bookings.wizard.fewer", { what: label })}
+      >
+        <Minus />
+      </Button>
+      <span
+        className="nums w-5 text-center text-xs font-medium"
+        aria-live="polite"
+      >
+        {num(value)}
+      </span>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        disabled={value >= max}
+        onClick={() => onChange(value + 1)}
+        aria-label={t("bookings.wizard.more", { what: label })}
+      >
+        <Plus />
+      </Button>
     </div>
   )
 }
@@ -525,11 +839,16 @@ function Line({
 }) {
   return (
     <div className="flex items-baseline justify-between">
-      <span className={cn("text-[0.6875rem]", muted && "text-muted-foreground")}>
+      <span
+        className={cn("text-[0.6875rem]", muted && "text-muted-foreground")}
+      >
         {label}
       </span>
       <span
-        className={cn("nums text-[0.6875rem]", muted && "text-muted-foreground")}
+        className={cn(
+          "nums text-[0.6875rem]",
+          muted && "text-muted-foreground"
+        )}
       >
         {value}
       </span>

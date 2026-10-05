@@ -282,6 +282,8 @@ export type InventoryItem = {
   unit: Bilingual
   supplierId: string
   updatedAt: string
+  /** Set once a purchase order has been raised for the item and not yet received. */
+  reorderedAt?: string
 }
 
 export type Supplier = {
@@ -571,6 +573,59 @@ export type AgentRun = {
 }
 
 /* ------------------------------------------------------------------ *
+ * Marketing & administration
+ * ------------------------------------------------------------------ */
+
+export type CampaignState = "live" | "scheduled" | "done"
+
+/** Who a campaign goes to: every guest, one loyalty tier, or corporate contacts. */
+export type CampaignAudience = "allGuests" | LoyaltyTier | "corporate"
+
+export type Campaign = {
+  id: string
+  name: Bilingual
+  channel: ChannelId
+  state: CampaignState
+  hue: TagHue
+  /** Messages sent; for a campaign not sent yet, the audience size. */
+  sent: number
+  /** Share of recipients who opened it, 0–1. */
+  opened: number
+  /** Share of recipients who went on to book, 0–1. */
+  booked: number
+  audience?: CampaignAudience
+  /** The send date of a scheduled campaign. */
+  scheduledAt?: string
+}
+
+export type UserRole =
+  "owner" | "gm" | "frontOffice" | "housekeeping" | "finance" | "readonly"
+
+export type UserStatus = "enabled" | "disabled" | "invited"
+
+/** A login to the app. */
+export type AppUser = {
+  id: string
+  name: Bilingual
+  email: string
+  avatarSeed: string
+  role: UserRole
+  status: UserStatus
+  department?: StaffDepartment
+  /** Absent until an invited user first signs in. */
+  lastSeenAt?: string
+}
+
+export type Integration = {
+  id: string
+  name: string
+  category: Bilingual
+  hue: TagHue
+  connected: boolean
+  detail: Bilingual
+}
+
+/* ------------------------------------------------------------------ *
  * The full per-tenant dataset
  * ------------------------------------------------------------------ */
 
@@ -605,4 +660,7 @@ export type Dataset = {
   kpis: Kpi[]
   insights: AiInsight[]
   agentRuns: AgentRun[]
+  campaigns: Campaign[]
+  users: AppUser[]
+  integrations: Integration[]
 }

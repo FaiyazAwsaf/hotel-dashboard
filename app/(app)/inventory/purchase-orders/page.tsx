@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Plus, ShoppingCart } from "lucide-react"
+import { ShoppingCart } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { NewPurchaseOrderButton } from "@/components/inventory/forms"
 import { DataTable, TableSearch } from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
 import { StatusTag } from "@/components/motion/status-tag"
@@ -88,10 +88,7 @@ export default function PurchaseOrdersPage() {
         title={t("inventory.purchaseOrders")}
         subtitle={t("nav.groups.resources")}
       >
-        <Button size="sm">
-          <Plus />
-          {t("common.new")}
-        </Button>
+        <NewPurchaseOrderButton />
       </PageHeader>
       <div className="flex min-h-0 flex-1 flex-col px-5 pb-5">
         <DataTable

@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Plus, Star, UserCog } from "lucide-react"
+import { Star, UserCog } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { NewStaffButton } from "@/components/operations/forms"
 import { Avatar } from "@/components/motion/avatar-stack"
 import { DataTable, TableSearch } from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
@@ -110,13 +110,20 @@ export default function StaffDirectoryPage() {
       {
         accessorKey: "rating",
         header: t("reports.guestSatisfaction"),
-        meta: { align: "right" },
-        cell: ({ row }) => (
-          <span className="flex items-center justify-end gap-1">
-            <Star className="size-2.5 fill-[var(--warning)] text-[var(--warning)]" />
-            {dec(row.original.rating, 1)}
-          </span>
-        ),
+        meta: {
+          align: "right",
+          exportValue: (row) => (row.rating > 0 ? row.rating : null),
+        },
+        // New hires have no rating until their first review.
+        cell: ({ row }) =>
+          row.original.rating > 0 ? (
+            <span className="flex items-center justify-end gap-1">
+              <Star className="size-2.5 fill-[var(--warning)] text-[var(--warning)]" />
+              {dec(row.original.rating, 1)}
+            </span>
+          ) : (
+            <span className="text-muted-foreground">—</span>
+          ),
       },
       {
         accessorKey: "salary",
@@ -134,10 +141,7 @@ export default function StaffDirectoryPage() {
         title={t("staff.directory")}
         subtitle={`${num(data.staff.length)} ${t("staff.title").toLowerCase()}`}
       >
-        <Button size="sm">
-          <Plus />
-          {t("common.new")}
-        </Button>
+        <NewStaffButton />
       </PageHeader>
       <div className="flex min-h-0 flex-1 flex-col px-5 pb-5">
         <DataTable

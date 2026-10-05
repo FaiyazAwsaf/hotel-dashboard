@@ -47,7 +47,12 @@ bun run format      # prettier (no semicolons, double quotes, tailwind class sor
 - Edits are deliberately **not persisted**. A reload restores the pristine demo, and server and client renders always match. The ⌘K command "Reset demo data" clears them all.
 - Do not keep page-local copies of edited records; the room rack, housekeeping board and pipeline all edit through this layer.
 - Timestamps on new records come from `demoNow()`.
-- Put domain operations that touch several collections in an actions hook, so every screen stays consistent. For example, `useVmsActions()` in `lib/vms-actions.ts` handles visitor check-out: the visitor, an exit movement and the returned luggage. It also exports `can…` predicates; bulk-action buttons use them to disable themselves.
+- Put domain operations that touch several collections in an actions hook, so every screen stays consistent:
+  - `useVmsActions()` in `lib/vms-actions.ts` handles visitor check-out: the visitor, an exit movement and the returned luggage. It also exports `can…` predicates; bulk-action buttons use them to disable themselves.
+  - `useBookingActions()` (`lib/booking-actions.ts`) adds guests and creates bookings. `freeRoomsByType()` gives the rooms free for a date range.
+  - `useCrmActions()` (`lib/crm-actions.ts`) and `useInventoryActions()` (`lib/inventory-actions.ts`) do the same for CRM records, stock, suppliers, purchase orders and reordering.
+- New record codes continue their series with `nextSerial()` (`lib/numbering.ts`), e.g. `WO-3210` after `WO-3205`.
+- Campaigns, app users and integrations are dataset collections too (`lib/mock/catalog.ts`), built without the RNG.
 
 ### Time and hydration safety
 
@@ -101,6 +106,9 @@ Every page is a client component, but each is still server-rendered once. Server
 - **Forms:** use `FormSheet` + `FormSheetField` (`components/motion/form-sheet.tsx`). It is a side panel with required-field checks and errors in the interface language.
   - The field render prop gives props to spread onto the control.
   - `Select` and other controls without DOM change events call `clearError` from the render prop's second argument.
+  - Use `FormSheetSelect` for choices and `FormSheetDate` for dates. `FormSheetDate` uses the app's calendar, so it reads in the interface language.
+  - Check typed input with `lib/validate.ts`. `parseNumber`, `isPhone` and `samePhone` accept Bengali digits.
+  - Add forms live by domain under `components/<area>/forms.tsx`.
 - **Files and printing:**
   - `lib/export.ts` has `downloadCsv` and `exportFileName`. Files are UTF-8 with a byte-order mark so Excel reads Bangla, and the export guards against spreadsheet formulas.
   - `lib/print.tsx` has `usePrint()` and `PrintDocument`. The content is rendered into a hidden iframe carrying the app's styles, so it always prints in the light theme at 100% scale, uncut by the app frame. `@page` size and margin are options.

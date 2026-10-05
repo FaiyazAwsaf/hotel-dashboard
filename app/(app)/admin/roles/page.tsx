@@ -9,28 +9,10 @@ import { ScrollFade } from "@/components/motion/scroll-fade"
 import { StatusTag } from "@/components/motion/status-tag"
 import { cn } from "@/lib/utils"
 import { useLocale } from "@/lib/i18n/provider"
-import type { Bilingual, TagHue } from "@/lib/types"
+import { USER_ROLES } from "@/lib/roles"
+import type { Bilingual } from "@/lib/types"
 
-const ROLES: { id: string; name: Bilingual; hue: TagHue }[] = [
-  { id: "owner", name: { en: "Owner", bn: "স্বত্বাধিকারী" }, hue: "purple" },
-  {
-    id: "gm",
-    name: { en: "General Manager", bn: "মহাব্যবস্থাপক" },
-    hue: "blue",
-  },
-  {
-    id: "frontOffice",
-    name: { en: "Front Office", bn: "ফ্রন্ট অফিস" },
-    hue: "teal",
-  },
-  {
-    id: "housekeeping",
-    name: { en: "Housekeeping", bn: "হাউসকিপিং" },
-    hue: "amber",
-  },
-  { id: "finance", name: { en: "Finance", bn: "অর্থ" }, hue: "green" },
-  { id: "readonly", name: { en: "Read-only", bn: "শুধু পাঠ" }, hue: "slate" },
-]
+const ROLES = USER_ROLES
 
 const PERMISSIONS: { id: string; name: Bilingual; grants: number[] }[] = [
   {

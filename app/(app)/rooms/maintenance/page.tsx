@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import type { ColumnDef } from "@tanstack/react-table"
-import { Plus, Wrench } from "lucide-react"
+import { Wrench } from "lucide-react"
 
-import { Button } from "@/components/ui/button"
+import { NewWorkOrderButton } from "@/components/operations/forms"
 import { Avatar } from "@/components/motion/avatar-stack"
 import { DataTable, TableSearch } from "@/components/motion/data-table"
 import { PageHeader } from "@/components/motion/card-shell"
@@ -168,10 +168,7 @@ export default function MaintenancePage() {
         title={t("rooms.maintenance")}
         subtitle={t("nav.groups.operations")}
       >
-        <Button size="sm">
-          <Plus />
-          {t("rooms.workOrder")}
-        </Button>
+        <NewWorkOrderButton />
       </PageHeader>
       <div className="flex min-h-0 flex-1 flex-col gap-3 px-5 pb-5">
         <KpiStrip cells={kpis} />
